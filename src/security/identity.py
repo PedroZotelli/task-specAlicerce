@@ -54,9 +54,11 @@ def fingerprint(public_key: pathlib.Path) -> str:
 def sign(spec: pathlib.Path, private_key: pathlib.Path, public_key: pathlib.Path, signer: str) -> dict[str, Any]:
     payload, _ = payload_for(spec)
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-    with tempfile.NamedTemporaryFile() as payload_file:
-        payload_file.write(canonical); payload_file.flush()
-        signature = openssl("pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", payload_file.name)
+    # Closed files in a temporary directory: Windows cannot reopen an open temporary file by name.
+    with tempfile.TemporaryDirectory() as scratch:
+        payload_file = pathlib.Path(scratch) / "payload"
+        payload_file.write_bytes(canonical)
+        signature = openssl("pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", str(payload_file))
     key_id = fingerprint(public_key)[:16]
     return {
         "contract": "AuthorizationReceipt/v1", **payload, "signer": signer, "key_id": key_id,
@@ -81,10 +83,12 @@ def verify(receipt: dict[str, Any], public_key: pathlib.Path, revocations: pathl
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     try:
         signature = base64.b64decode(str(receipt.get("signature", "")), validate=True)
-        with tempfile.NamedTemporaryFile() as handle, tempfile.NamedTemporaryFile() as payload_file:
-            handle.write(signature); handle.flush()
-            payload_file.write(canonical); payload_file.flush()
-            openssl("pkeyutl", "-verify", "-rawin", "-pubin", "-inkey", str(public_key), "-sigfile", handle.name, "-in", payload_file.name)
+        with tempfile.TemporaryDirectory() as scratch:
+            handle = pathlib.Path(scratch) / "signature"
+            payload_file = pathlib.Path(scratch) / "payload"
+            handle.write_bytes(signature)
+            payload_file.write_bytes(canonical)
+            openssl("pkeyutl", "-verify", "-rawin", "-pubin", "-inkey", str(public_key), "-sigfile", str(handle), "-in", str(payload_file))
     except (ValueError, base64.binascii.Error) as exc:
         errors.append(f"signature does not verify: {exc}")
     return errors
@@ -92,7 +96,7 @@ def verify(receipt: dict[str, Any], public_key: pathlib.Path, revocations: pathl
 
 def write(path: pathlib.Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def main() -> int:

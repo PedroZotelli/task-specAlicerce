@@ -47,6 +47,7 @@ tools
 # Every tracked root-level file. Keep sorted. Root-file creep is the axis that
 # regressed once already, so this list is exact, not a prefix match.
 DECLARED_ROOT_FILES="
+.gitattributes
 .gitignore
 AGENTS.md
 CHANGELOG.md
@@ -54,6 +55,7 @@ CLAUDE.md
 CONTRIBUTING.md
 LICENSE
 Makefile
+NOTICE
 OPERATING.md
 README.md
 SECURITY.md

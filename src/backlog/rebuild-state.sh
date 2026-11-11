@@ -44,6 +44,9 @@ TS="$(
 )"
 [[ -n "$TS" ]] || TS="1970-01-01T00:00:00Z"
 WORKSPACE_ROOT="$(ts_workspace_root "$TASKS_DIR")"
+# Physical form: git reports the resolved root, while a backlog reached through a
+# symlink or junction is logical. Comparing physical paths keeps `path:` relative.
+WORKSPACE_ROOT="$(cd "$WORKSPACE_ROOT" && pwd -P)"
 STATE_GENERATOR="${TASKSPEC_STATE_GENERATOR:-rebuild-state.sh}"
 STATE_VALIDATOR_VERSION="${TASKSPEC_STATE_VALIDATOR_VERSION:-rebuild}"
 GRAPH_REVISION="$(python3 "$TASKSPEC_SKILL_DIR/src/graph/task_graph.py" --backlog "$TASKS_DIR" --json \
@@ -87,7 +90,7 @@ while IFS= read -r FILE; do
 
   {
     echo "- id: ${ID}"
-    FILE_ABS="$(cd "$(dirname "$FILE")" && pwd)/$(basename "$FILE")"
+    FILE_ABS="$(cd "$(dirname "$FILE")" && pwd -P)/$(basename "$FILE")"
     case "$FILE_ABS" in
       "$WORKSPACE_ROOT"/*) DISPLAY_FILE="${FILE_ABS#"$WORKSPACE_ROOT"/}" ;;
       *) DISPLAY_FILE="$FILE" ;;

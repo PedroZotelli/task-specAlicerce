@@ -10,7 +10,7 @@
 <p><strong>Agents can write code. TASK-SPEC makes them earn <code>done</code>.</strong></p>
 <p>One open contract for bounded scope, executable proof, sealed authority,<br/>portable handoff, and independent acceptance.</p>
 
-[![version](https://img.shields.io/badge/version-3.9.0-68c7ff)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-3.10.0-68c7ff)](CHANGELOG.md)
 [![format](https://img.shields.io/badge/format-v3%20stable%20%7C%20v4%20opt--in-ffb454)](spec/task-spec-v4.md)
 [![bash](https://img.shields.io/badge/bash-3.2%2B-4EAA25?logo=gnubash&logoColor=white)](#requirements)
 [![release gate](https://img.shields.io/badge/local%20gate-CHECK%3DREADY-3ddc97)](#trust-boundaries)
@@ -105,7 +105,7 @@ that uses Task-Spec. The skill drives `taskspec`. It does not replace the gates.
 Claude marketplace (plugin, not a second contract):
 
 ```text
-/plugin marketplace add luanmorenommaciel/task-spec
+/plugin marketplace add PedroZotelli/task-specLuan
 /plugin install task-spec@taskspec
 ```
 
@@ -147,23 +147,22 @@ hand-edit accepted: true.
 
 ## Installation
 
-This repository and its releases are **private**. Authenticate to GitHub before
-cloning or downloading assets. Anonymous raw-file URLs are not installation
-doors.
+This fork is public: https://github.com/PedroZotelli/task-specLuan. Cloning needs no credentials. On Windows, run the
+commands in Git Bash.
 
 Pick one door. All of them install the same engine and the same skill.
 
 | Door | When | Command shape |
 |---|---|---|
 | Source checkout | You already cloned the repo | `bash install.sh --global --copy` |
-| Pinned release | You want the tagged `v3.9.0` archive | `gh release download` then that `install.sh` |
-| npm | You want the package launcher | `npm install -g …#v3.9.0` then `taskspec-install` |
+| Pinned release | You want the tagged `v3.10.0` archive | `gh release download` then that `install.sh` |
+| npm | You want the package launcher | `npm install -g …#v3.10.0` then `taskspec-install` |
 | Claude plugin | You only need the Claude skill entry | `/plugin install task-spec@taskspec` (still install the CLI) |
 
-### 1. Authenticated source checkout
+### 1. Source checkout
 
 ```bash
-git clone --depth 1 https://github.com/luanmorenommaciel/task-spec.git \
+git clone --depth 1 https://github.com/PedroZotelli/task-specLuan.git \
   "$HOME/.local/share/task-spec-src"
 
 bash "$HOME/.local/share/task-spec-src/install.sh" --global --copy
@@ -190,26 +189,28 @@ Repository-local skill copies use `--target DIR --copy` (see installation docs).
 The installer prints `INSTALL=OK` only after the engine version, every harness
 skill copy, and the CLI launcher all agree.
 
-### 2. Pinned private release archive
+### 2. Pinned release archive
+
+> This door needs a GitHub Release with these assets, and this fork has not
+> published one yet. Until it does, use the source checkout below or above.
 
 ```bash
 gh auth status
 release_dir="$(mktemp -d)"
-gh release download v3.9.0 \
-  --repo luanmorenommaciel/task-spec \
-  --pattern 'task-spec-3.9.0.tar.gz*' \
+gh release download v3.10.0 \
+  --repo PedroZotelli/task-specLuan \
+  --pattern 'task-spec-3.10.0.tar.gz*' \
   --pattern 'taskspec-meshd-*' \
   --dir "$release_dir"
-(cd "$release_dir" && shasum -a 256 -c task-spec-3.9.0.tar.gz.sha256)
-tar -xzf "$release_dir/task-spec-3.9.0.tar.gz" -C "$release_dir"
-bash "$release_dir/task-spec-3.9.0/install.sh" --global --copy --with-mesh
+(cd "$release_dir" && shasum -a 256 -c task-spec-3.10.0.tar.gz.sha256)
+tar -xzf "$release_dir/task-spec-3.10.0.tar.gz" -C "$release_dir"
+bash "$release_dir/task-spec-3.10.0/install.sh" --global --copy --with-mesh
 ```
 
 ### 3. Node package plus GitHub tag
 
 ```bash
-gh auth setup-git
-npm install -g git+https://github.com/luanmorenommaciel/task-spec.git#v3.9.0
+npm install -g git+https://github.com/PedroZotelli/task-specLuan.git#v3.10.0
 taskspec-install --global --with-mesh
 ```
 
@@ -441,6 +442,24 @@ MESH_INSTALL as READY. Missing runtime is UNAVAILABLE, never a pass.
 - Anyone wanting Homebrew or an anonymous curl installer (not shipped)
 - Anyone wanting TaskMesh to widen scope, rewrite a signed leaf, or merge the user branch
 - Anyone needing a live nine-engine matrix badge (not claimed)
+
+## Verified status
+
+Generated from the retained release evidence by `tools/render-status.py`.
+
+<!-- release-status:start -->
+| Surface | Repository evidence | Status |
+|---|---|---|
+| Evidence-derived score | Only digest-matching retained artifacts earn points | **97/100**; target 97; release gate passed |
+| Contract and trust | Revision-bound authorization, compatibility, and the explicit HMAC boundary | 24/25 |
+| Lifecycle and recovery | Nested workspaces, graph recovery, atomic acceptance, and replay resistance | 25/25 |
+| Documentation and DX | Installed reviewer route, executable docs, and generated status | 20/20 |
+| Harness and packaging | All installation doors plus frozen Codex and Claude execution | 10/10 |
+| Standards interoperability | Pinned official A2A and MCP SDK conformance | 9/10 |
+| Private distribution and external proof | Hosted CI, private signed provenance, authenticated installs, and externally signed sandbox evidence | 9/10 |
+| Publication | Task-Spec 3.8.1 at `351c39908ca0` | Published |
+| Deliberately unclaimed | Semantic truth, ecosystem-wide certification, and long-running production reliability | 3 points remain unavailable by design |
+<!-- release-status:end -->
 
 ## Documentation
 

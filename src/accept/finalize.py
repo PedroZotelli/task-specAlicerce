@@ -35,7 +35,7 @@ def load(path: pathlib.Path) -> dict[str, Any]:
 def atomic_json(path: pathlib.Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}")
-    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
     os.replace(temporary, path)
 
 
@@ -49,7 +49,7 @@ def append_metric(path: pathlib.Path, event: dict[str, Any]) -> None:
                 continue
             if current.get("event") == "accepted" and current.get("attempt_id") == event["attempt_id"]:
                 return
-    with path.open("a", encoding="utf-8") as stream:
+    with path.open("a", encoding="utf-8", newline="\n") as stream:
         stream.write(json.dumps(event, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
 
 

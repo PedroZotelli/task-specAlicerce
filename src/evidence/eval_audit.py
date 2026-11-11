@@ -14,6 +14,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import bash_executable  # noqa: E402
+
 RUNNER = ROOT / "src" / "gate" / "run-task-spec.sh"
 
 
@@ -33,7 +36,7 @@ def repo_root(spec: pathlib.Path) -> pathlib.Path:
 
 
 def run_spec(spec: pathlib.Path, cwd: pathlib.Path) -> dict[str, Any]:
-    result = command(["bash", str(RUNNER), str(spec)], cwd)
+    result = command([bash_executable(), str(RUNNER), str(spec)], cwd)
     return {"exit_code": result.returncode, "passed": result.returncode == 0}
 
 
@@ -145,7 +148,7 @@ def main() -> int:
         }
         if args.report:
             out = pathlib.Path(args.report); out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+            out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
         print(json.dumps(report, indent=2))
         return 0 if discriminating else 1
     except (OSError, ValueError, json.JSONDecodeError) as exc:

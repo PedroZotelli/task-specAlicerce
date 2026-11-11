@@ -11,6 +11,17 @@ fail() { echo "  ✗ $1" >&2; FAIL=$((FAIL + 1)); }
 check() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then pass "$name"; else fail "$name"; fi; }
 
 WORK="$(mktemp -d -t taskspec-v36-XXXXXX)"
+# Windows (Git Bash): native curl reads file URLs with a drive letter, npm puts
+# package shims at the prefix root, and real symlinks need Developer Mode.
+WINDOWS=false
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) WINDOWS=true ;; esac
+file_url() { if [[ "$WINDOWS" == true ]]; then printf 'file:///%s' "$(cygpath -m "$1")"; else printf 'file://%s' "$1"; fi; }
+native_symlinks() {
+  [[ "$WINDOWS" == true ]] || return 0
+  local probe; probe="$(mktemp -d -t taskspec-v36-probe-XXXXXX)"
+  MSYS=winsymlinks:nativestrict ln -s "$probe" "$probe/link" 2>/dev/null && [[ -L "$probe/link" ]]
+  local rc=$?; rm -rf "$probe"; return $rc
+}
 TARGET="$WORK/project"
 INSTALL_ROOT="$WORK/install-root"
 BIN_DIR="$WORK/bin"
@@ -50,7 +61,15 @@ SYMLINK_TARGET="$WORK/symlink-project"
 SYMLINK_ROOT="$WORK/symlink-root"
 SYMLINK_BIN="$WORK/symlink-bin"
 mkdir -p "$SYMLINK_TARGET" "$SYMLINK_ROOT" "$SYMLINK_BIN"
-if TASKSPEC_INSTALL_ROOT="$SYMLINK_ROOT" bash "$ROOT/install.sh" --target "$SYMLINK_TARGET" --symlink --bin-dir "$SYMLINK_BIN" >"$WORK/symlink.out" 2>&1 \
+if ! native_symlinks; then
+  if ! TASKSPEC_INSTALL_ROOT="$SYMLINK_ROOT" bash "$ROOT/install.sh" --target "$SYMLINK_TARGET" --symlink --bin-dir "$SYMLINK_BIN" >"$WORK/symlink.out" 2>&1 \
+    && grep -q 'needs Windows symlinks' "$WORK/symlink.out" \
+    && [[ ! -e "$SYMLINK_TARGET/.claude/skills/task-spec" ]]; then
+    pass "checkout symlink install refuses without Windows symlinks"
+  else
+    fail "checkout symlink install refuses without Windows symlinks"
+  fi
+elif TASKSPEC_INSTALL_ROOT="$SYMLINK_ROOT" bash "$ROOT/install.sh" --target "$SYMLINK_TARGET" --symlink --bin-dir "$SYMLINK_BIN" >"$WORK/symlink.out" 2>&1 \
   && [[ -L "$SYMLINK_TARGET/.agents/skills/task-spec" ]] \
   && [[ -L "$SYMLINK_TARGET/.claude/skills/task-spec" ]] \
   && [[ -L "$SYMLINK_TARGET/.grok/skills/task-spec" ]] \
@@ -367,7 +386,7 @@ python3 "$ROOT/tools/build-release-archive.py" --out-dir "$DIST" --include-workt
 REMOTE_TARGET="$WORK/remote-project"; REMOTE_ROOT="$WORK/remote-root"; REMOTE_BIN="$WORK/remote-bin"
 mkdir -p "$REMOTE_TARGET" "$REMOTE_ROOT" "$REMOTE_BIN"
 cp "$ROOT/install.sh" "$WORK/remote-install.sh"
-if TASKSPEC_RELEASE_BASE_URL="file://$DIST" TASKSPEC_INSTALL_ROOT="$REMOTE_ROOT" \
+if TASKSPEC_RELEASE_BASE_URL="$(file_url "$DIST")" TASKSPEC_INSTALL_ROOT="$REMOTE_ROOT" \
   bash "$WORK/remote-install.sh" --target "$REMOTE_TARGET" --bin-dir "$REMOTE_BIN" >"$WORK/remote.out" 2>&1 \
   && grep -q '^verified: release archive sha256:' "$WORK/remote.out" \
   && grep -q '^INSTALL=OK$' "$WORK/remote.out"; then
@@ -378,7 +397,7 @@ fi
 cp "$DIST/task-spec-$CURRENT_VERSION.tar.gz" "$WORK/tampered.tar.gz"
 printf 'tamper' >> "$DIST/task-spec-$CURRENT_VERSION.tar.gz"
 set +e
-TASKSPEC_RELEASE_BASE_URL="file://$DIST" TASKSPEC_INSTALL_ROOT="$WORK/tampered-root" \
+TASKSPEC_RELEASE_BASE_URL="$(file_url "$DIST")" TASKSPEC_INSTALL_ROOT="$WORK/tampered-root" \
   bash "$WORK/remote-install.sh" --target "$REMOTE_TARGET" --no-bin >"$WORK/tampered.out" 2>&1
 tampered_rc=$?
 set -e
@@ -391,19 +410,21 @@ mv "$WORK/tampered.tar.gz" "$DIST/task-spec-$CURRENT_VERSION.tar.gz"
 
 echo "== package =="
 if command -v npm >/dev/null 2>&1 && (cd "$ROOT" && npm pack --dry-run --json > "$WORK/npm-pack.json") \
-  && python3 -c 'import json; d=json.load(open("'"$WORK/npm-pack.json"'")); assert d[0]["name"] == "@luanmorenommaciel/task-spec"'; then
+  && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d[0]["name"] == "@pedrozotelli/task-spec"' "$WORK/npm-pack.json"; then
   pass "npm pack dry run"
 else
   fail "npm pack dry run"
 fi
 NPM_TARGET="$WORK/npm-project"
 NPM_INSTALL_ROOT="$WORK/npm-install-root"
+NPM_BIN="$WORK/npm-prefix/bin"
+[[ "$WINDOWS" == true ]] && NPM_BIN="$WORK/npm-prefix"
 mkdir -p "$NPM_TARGET" "$NPM_INSTALL_ROOT"
 if command -v npm >/dev/null 2>&1 \
   && npm install --global --prefix "$WORK/npm-prefix" "$ROOT" >/dev/null 2>&1 \
-  && [[ "$("$WORK/npm-prefix/bin/taskspec" version)" == "$CURRENT_VERSION" ]] \
-  && [[ -x "$WORK/npm-prefix/bin/taskspec-install" ]] \
-  && TASKSPEC_INSTALL_ROOT="$NPM_INSTALL_ROOT" "$WORK/npm-prefix/bin/taskspec-install" --target "$NPM_TARGET" --no-bin >"$WORK/npm-install.out" 2>&1 \
+  && [[ "$("$NPM_BIN/taskspec" version)" == "$CURRENT_VERSION" ]] \
+  && [[ -x "$NPM_BIN/taskspec-install" ]] \
+  && TASKSPEC_INSTALL_ROOT="$NPM_INSTALL_ROOT" "$NPM_BIN/taskspec-install" --target "$NPM_TARGET" --no-bin >"$WORK/npm-install.out" 2>&1 \
   && grep -q '^INSTALL=OK$' "$WORK/npm-install.out" \
   && [[ -f "$NPM_TARGET/.claude/agents/task-architect.md" ]]; then
   pass "local npm package install"

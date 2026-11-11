@@ -43,7 +43,7 @@ class DirectoryLock:
         for _ in range(self.attempts):
             try:
                 self.path.mkdir()
-                (self.path / "pid").write_text(str(os.getpid()), encoding="utf-8")
+                (self.path / "pid").write_text(str(os.getpid()), encoding="utf-8", newline="\n")
                 return self
             except FileExistsError:
                 self._reclaim_stale()

@@ -408,6 +408,9 @@ func inspectSecurity(ctx context.Context, runtimeName, container, network, works
 }
 
 func (store *Store) runSandbox(ctx context.Context, lease Lease, handoff, prompt, provider, model string, setup SandboxSetup) (SandboxRunResult, error) {
+	if !sandboxHostSupported() {
+		return SandboxRunResult{}, codedError{Code: "SANDBOX_UNAVAILABLE", Message: "autonomous TaskMesh needs a Linux or macOS host: the container runs as the host uid, which Windows does not have"}
+	}
 	if os.Getuid() == 0 {
 		return SandboxRunResult{}, codedError{Code: "SANDBOX_UNAVAILABLE", Message: "autonomous TaskMesh requires a non-root host process"}
 	}

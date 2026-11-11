@@ -33,9 +33,11 @@ def sign(receipt: dict[str, Any], private_key: pathlib.Path, public_key: pathlib
     value = dict(receipt)
     value.pop("signature", None)
     payload = _canonical_unsigned(value)
-    with tempfile.NamedTemporaryFile() as payload_file:
-        payload_file.write(payload); payload_file.flush()
-        raw = _openssl("pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", payload_file.name)
+    # Closed files in a temporary directory: Windows cannot reopen an open temporary file by name.
+    with tempfile.TemporaryDirectory() as scratch:
+        payload_file = pathlib.Path(scratch) / "payload"
+        payload_file.write_bytes(payload)
+        raw = _openssl("pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", str(payload_file))
     digest = fingerprint(public_key)
     value["signature"] = {
         "algorithm": "Ed25519",
@@ -95,11 +97,13 @@ def verify(receipt: dict[str, Any], registry_path: pathlib.Path) -> list[str]:
         if signature.get("payload_digest") != expected_digest:
             errors.append("receipt payload_digest does not match receipt content")
         raw = base64.b64decode(str(signature.get("value", "")), validate=True)
-        with tempfile.NamedTemporaryFile() as sig_file, tempfile.NamedTemporaryFile() as payload_file:
-            sig_file.write(raw); sig_file.flush()
-            payload_file.write(payload); payload_file.flush()
+        with tempfile.TemporaryDirectory() as scratch:
+            sig_file = pathlib.Path(scratch) / "signature"
+            payload_file = pathlib.Path(scratch) / "payload"
+            sig_file.write_bytes(raw)
+            payload_file.write_bytes(payload)
             completed = subprocess.run(
-                ["openssl", "pkeyutl", "-verify", "-rawin", "-pubin", "-inkey", str(public_key), "-sigfile", sig_file.name, "-in", payload_file.name],
+                ["openssl", "pkeyutl", "-verify", "-rawin", "-pubin", "-inkey", str(public_key), "-sigfile", str(sig_file), "-in", str(payload_file)],
                 capture_output=True,
                 check=False,
             )

@@ -12,6 +12,7 @@ import os
 import pathlib
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -22,8 +23,12 @@ from typing import Any
 
 FAMILIES = {"openai", "anthropic", "google", "xai", "deepseek", "kimi", "minimax", "qwen", "glm"}
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import bash_executable, find_program, resolve_command# noqa: E402
 V2_FAMILIES = {"openai", "anthropic"}
-BENCHMARK_RUNTIME_ROOT = pathlib.Path("/tmp/taskspec-3.8.1-engine-matrix").resolve()
+# Git Bash mounts /tmp at %TEMP%; native Windows Python would read /tmp as C:\tmp.
+_RUNTIME_TMP = pathlib.Path(tempfile.gettempdir()) if sys.platform == "win32" else pathlib.Path("/tmp")
+BENCHMARK_RUNTIME_ROOT = (_RUNTIME_TMP / "taskspec-3.8.1-engine-matrix").resolve()
 
 
 def now() -> str:
@@ -39,6 +44,19 @@ def load(path: pathlib.Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{path}: expected a JSON object")
     return value
+
+
+def remove_tree(path: pathlib.Path, *, ignore_errors: bool = False) -> None:
+    """shutil.rmtree that also removes Git's read-only object files on Windows."""
+    def clear_readonly(function: Any, target: str, _error: Any) -> None:
+        os.chmod(target, stat.S_IWRITE)
+        function(target)
+    try:
+        handler = {"onexc" if sys.version_info >= (3, 12) else "onerror": clear_readonly}
+        shutil.rmtree(path, **handler)
+    except OSError:
+        if not ignore_errors:
+            raise
 
 
 def git(workspace: pathlib.Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -166,7 +184,7 @@ def isolated_handoff(
     isolated = pathlib.Path(tempfile.mkdtemp(prefix=f"taskspec-{family}-"))
     added = git(source_workspace, "worktree", "add", "-q", "--detach", str(isolated), source_commit)
     if added.returncode:
-        shutil.rmtree(isolated, ignore_errors=True)
+        remove_tree(isolated, ignore_errors=True)
         raise ValueError(f"cannot create isolated worktree for {family}: {added.stderr.strip()}")
     try:
         original_spec = pathlib.Path(str(original["spec"])).resolve()
@@ -194,18 +212,18 @@ def isolated_handoff(
         handoff_dir = out_dir / "handoffs"
         handoff_dir.mkdir(parents=True, exist_ok=True)
         handoff_path = handoff_dir / f"{family}.json"
-        handoff_path.write_text(json.dumps(copy_handoff, indent=2) + "\n", encoding="utf-8")
+        handoff_path.write_text(json.dumps(copy_handoff, indent=2) + "\n", encoding="utf-8", newline="\n")
         return isolated, isolated_spec, handoff_path
     except Exception:
         git(source_workspace, "worktree", "remove", "--force", str(isolated))
-        shutil.rmtree(isolated, ignore_errors=True)
+        remove_tree(isolated, ignore_errors=True)
         raise
 
 
 def remove_worktree(source_workspace: pathlib.Path, isolated: pathlib.Path) -> None:
     removed = git(source_workspace, "worktree", "remove", "--force", str(isolated))
     if removed.returncode:
-        shutil.rmtree(isolated, ignore_errors=True)
+        remove_tree(isolated, ignore_errors=True)
 
 
 def changed_file_manifest(workspace: pathlib.Path) -> list[dict[str, Any]]:
@@ -231,7 +249,7 @@ def changed_file_manifest(workspace: pathlib.Path) -> list[dict[str, Any]]:
 
 
 def run_checked(argv: list[str], cwd: pathlib.Path, env: dict[str, str] | None = None) -> None:
-    completed = subprocess.run(argv, cwd=cwd, text=True, capture_output=True, check=False, env=env)
+    completed = subprocess.run(resolve_command(argv), cwd=cwd, text=True, capture_output=True, check=False, env=env)
     if completed.returncode:
         raise ValueError(f"{' '.join(argv)} failed: {completed.stderr.strip()}")
 
@@ -265,7 +283,7 @@ def recreate_benchmark_worktree(
         raise ValueError("frozen handoff workspace has an invalid layout")
     case_root = workspace.parent
     if case_root.exists():
-        shutil.rmtree(case_root)
+        remove_tree(case_root)
     seed = case_root / "seed"
     bare = case_root / "repo.git"
     snapshot = benchmark_snapshot(matrix_path, task["effort"])
@@ -274,7 +292,7 @@ def recreate_benchmark_worktree(
     if len(specs) != 1:
         raise ValueError("benchmark snapshot must contain exactly one Task-Spec")
     signed_bytes = specs[0].read_bytes()
-    specs[0].write_text(unseal_for_first_commit(signed_bytes.decode("utf-8")), encoding="utf-8")
+    specs[0].write_text(unseal_for_first_commit(signed_bytes.decode("utf-8")), encoding="utf-8", newline="\n")
     run_checked(["git", "init", "-q"], seed)
     run_checked(["git", "config", "user.name", "Task-Spec Benchmark"], seed)
     run_checked(["git", "config", "user.email", "benchmark@taskspec.invalid"], seed)
@@ -287,7 +305,7 @@ def recreate_benchmark_worktree(
     fixed.update({"GIT_AUTHOR_DATE": "2026-08-15T00:01:00Z", "GIT_COMMITTER_DATE": "2026-08-15T00:01:00Z"})
     run_checked(["git", "commit", "-q", "-m", "seal benchmark task"], seed, fixed)
     run_checked(["git", "clone", "-q", "--bare", str(seed), str(bare)], case_root)
-    shutil.rmtree(seed)
+    remove_tree(seed)
     run_checked(["git", f"--git-dir={bare}", "worktree", "add", "-q", "--detach", str(workspace), "HEAD"], case_root)
     if (bare / "info" / "taskspec-signing-key").exists():
         raise ValueError("sanitized benchmark repository unexpectedly contains a signing key")
@@ -318,7 +336,7 @@ def canonical_digest(value: Any) -> str:
 
 
 def version_of(command: str) -> str:
-    completed = subprocess.run([command, "--version"], text=True, capture_output=True, check=False)
+    completed = subprocess.run(resolve_command([command, "--version"]), text=True, capture_output=True, check=False)
     return (completed.stdout or completed.stderr).strip().splitlines()[0] if completed.returncode == 0 else "unavailable"
 
 
@@ -448,7 +466,7 @@ def execute_v2_attempt(
             "scope_violation": False, "failure_code": "ENGINE_DISABLED",
         }
         return attempt, {"state": "unavailable", "observed_model": None, "adapter_version": "disabled"}
-    if shutil.which(engine["adapter"]) is None:
+    if find_program(engine["adapter"]) is None:
         empty = hashlib.sha256(b"").hexdigest()
         attempt = {
             "task_id": task["task_id"], "attempt_id": attempt_id, "status": "unavailable",
@@ -476,7 +494,7 @@ def execute_v2_attempt(
     timed_out = False
     try:
         completed = subprocess.run(
-            command, cwd=workspace, input=prompt, text=True, capture_output=True,
+            resolve_command(command), cwd=workspace, input=prompt, text=True, capture_output=True,
             check=False, env=environment, timeout=engine["budget"]["timeout_sec"],
         )
         exit_code = completed.returncode
@@ -492,7 +510,7 @@ def execute_v2_attempt(
     raw_dir = out_dir / "raw" / engine["family"]
     raw_dir.mkdir(parents=True, exist_ok=True)
     transcript_path = raw_dir / f"{task['effort'].lower()}.jsonl"
-    transcript_path.write_text(sanitized, encoding="utf-8")
+    transcript_path.write_text(sanitized, encoding="utf-8", newline="\n")
 
     manifest = changed_file_manifest(workspace)
     violated = scope_violation(manifest, handoff)
@@ -500,7 +518,7 @@ def execute_v2_attempt(
     patch_path = raw_dir / f"{task['effort'].lower()}.patch"
     patch_path.write_bytes(patch)
     files_path = raw_dir / f"{task['effort'].lower()}-files.json"
-    files_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    files_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     accept_env = os.environ.copy()
     accept_env.update({
@@ -508,12 +526,12 @@ def execute_v2_attempt(
         "TASKSPEC_WORKSPACE_ROOT": str(workspace),
     })
     accepted = subprocess.run(
-        [str(ROOT / "bin" / "taskspec"), "accept", "--stamp", "--handoff", str(handoff_path), str(spec)],
+        [bash_executable(), str(ROOT / "bin" / "taskspec"), "accept", "--stamp", "--handoff", str(handoff_path), str(spec)],
         cwd=workspace, text=True, capture_output=True, check=False, env=accept_env,
     )
     acceptance_text = accepted.stdout + accepted.stderr
     acceptance_path = raw_dir / f"{task['effort'].lower()}-acceptance.txt"
-    acceptance_path.write_text(redact(acceptance_text), encoding="utf-8")
+    acceptance_path.write_text(redact(acceptance_text), encoding="utf-8", newline="\n")
     observed_model, usage = observed_stream_data(engine["adapter"], sanitized, engine["model"])
     if violated:
         status, failure_code = "rejected", "SCOPE_VIOLATION"
@@ -641,8 +659,8 @@ def main() -> int:
             artifact_path = pathlib.Path(args.artifacts).resolve() if args.artifacts else out_dir / "artifacts.json"
             result_path.parent.mkdir(parents=True, exist_ok=True)
             artifact_path.parent.mkdir(parents=True, exist_ok=True)
-            result_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-            artifact_path.write_text(json.dumps(artifacts, indent=2) + "\n", encoding="utf-8")
+            result_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
+            artifact_path.write_text(json.dumps(artifacts, indent=2) + "\n", encoding="utf-8", newline="\n")
             print(json.dumps(result, indent=2))
             return 0 if result["summary"]["passed"] else 1
 
@@ -705,22 +723,22 @@ def main() -> int:
                 )
                 try:
                     argv = expand(engine["argv"], handoff=run_handoff, output=target, workspace=isolated, spec=isolated_spec)
-                    completed = subprocess.run(argv, cwd=isolated, text=True, capture_output=True, check=False, env=os.environ.copy())
-                    target.write_text(completed.stdout, encoding="utf-8")
+                    completed = subprocess.run(resolve_command(argv), cwd=isolated, text=True, capture_output=True, check=False, env=os.environ.copy())
+                    target.write_text(completed.stdout, encoding="utf-8", newline="\n")
                     terminal, code, stderr = ("pass" if completed.returncode == 0 else "fail"), completed.returncode, completed.stderr[-4000:]
                     status_path = out_dir / "raw" / f"{entry['family']}-status.txt"
-                    status_path.write_text(git(isolated, "status", "--short").stdout, encoding="utf-8")
+                    status_path.write_text(git(isolated, "status", "--short").stdout, encoding="utf-8", newline="\n")
                     patch_path = out_dir / "raw" / f"{entry['family']}.patch"
-                    patch_path.write_text(git(isolated, "diff", "--binary", "HEAD").stdout, encoding="utf-8")
+                    patch_path.write_text(git(isolated, "diff", "--binary", "HEAD").stdout, encoding="utf-8", newline="\n")
                     files_path = out_dir / "raw" / f"{entry['family']}-files.json"
-                    files_path.write_text(json.dumps(changed_file_manifest(isolated), indent=2) + "\n", encoding="utf-8")
+                    files_path.write_text(json.dumps(changed_file_manifest(isolated), indent=2) + "\n", encoding="utf-8", newline="\n")
                     artifacts.extend([str(target), str(status_path), str(patch_path), str(files_path), str(run_handoff)])
                     if terminal == "pass" and engine.get("acceptance_argv"):
                         accept_argv = expand(engine["acceptance_argv"], handoff=run_handoff, output=target, workspace=isolated, spec=isolated_spec)
-                        accepted = subprocess.run(accept_argv, cwd=isolated, text=True, capture_output=True, check=False, env=os.environ.copy())
+                        accepted = subprocess.run(resolve_command(accept_argv), cwd=isolated, text=True, capture_output=True, check=False, env=os.environ.copy())
                         acceptance = "accepted" if accepted.returncode == 0 else "rejected"
                         accept_path = out_dir / "raw" / f"{entry['family']}-acceptance.txt"
-                        accept_path.write_text(accepted.stdout + accepted.stderr, encoding="utf-8")
+                        accept_path.write_text(accepted.stdout + accepted.stderr, encoding="utf-8", newline="\n")
                         artifacts.append(str(accept_path))
                 finally:
                     remove_worktree(source_workspace, isolated)
@@ -756,10 +774,10 @@ def main() -> int:
                     "task_digest": handoff_data.get("spec_digest"),
                 })
             receipt_path = out_dir / "receipts" / f"{entry['family']}.json"
-            receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+            receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8", newline="\n")
             results.append(receipt)
         summary = {"contract": "EngineMatrixResult/v1", "matrix_digest": f"sha256:{digest(matrix_path)}", "results": results}
-        (out_dir / "results.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        (out_dir / "results.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
         print(json.dumps(summary, indent=2))
         return 0 if all(item["terminal_outcome"] in {"pass", "unavailable"} for item in results) else 1
     except (OSError, ValueError, json.JSONDecodeError) as exc:

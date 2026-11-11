@@ -2,8 +2,8 @@
 # Install a pinned Task-Spec engine, CLI launcher, and equivalent harness skills.
 set -euo pipefail
 
-PINNED_VERSION="3.9.0"
-REPOSITORY="luanmorenommaciel/task-spec"
+PINNED_VERSION="3.10.0"
+REPOSITORY="PedroZotelli/task-specLuan"
 TARGET="$PWD"
 MODE="copy"
 BIN_DIR="${HOME}/.local/bin"
@@ -63,6 +63,23 @@ while [[ -h "$installer_source" ]]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$installer_source")" 2>/dev/null && pwd || true)"
 unset installer_source installer_dir
+# Git Bash turns `ln -s` into a silent copy unless told otherwise. A symlink
+# install must create real links or stop, never report links it did not make.
+if [[ "$MODE" == "symlink" ]]; then
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+      export MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict"
+      probe="$(mktemp -d -t taskspec-symlink-probe-XXXXXX)"
+      if ! ln -s "$probe" "$probe/link" 2>/dev/null || [[ ! -L "$probe/link" ]]; then
+        rm -rf "$probe"
+        echo "install.sh: --symlink needs Windows symlinks (turn on Developer Mode); use --copy" >&2
+        exit 2
+      fi
+      rm -rf "$probe"
+      ;;
+  esac
+fi
+
 SOURCE_ROOT=""
 DOWNLOAD_DIR=""
 if [[ -n "$SCRIPT_DIR" && -f "$SCRIPT_DIR/VERSION" && -x "$SCRIPT_DIR/bin/taskspec" ]]; then
@@ -172,12 +189,13 @@ sha256_file() {
 }
 
 install_mesh() {
-  local kernel machine platform asset asset_path checksum_path expected_sha actual_sha mesh_tmp
+  local kernel machine platform asset asset_path checksum_path expected_sha actual_sha mesh_tmp exe
   kernel="$(uname -s)"
   machine="$(uname -m)"
   case "$kernel" in
     Darwin) platform="darwin" ;;
     Linux) platform="linux" ;;
+    MINGW*|MSYS*|CYGWIN*) platform="windows" ;;
     *) echo "install.sh: TaskMesh has no helper for $kernel" >&2; return 2 ;;
   esac
   case "$machine" in
@@ -185,7 +203,9 @@ install_mesh() {
     arm64|aarch64) machine="arm64" ;;
     *) echo "install.sh: TaskMesh has no helper for $machine" >&2; return 2 ;;
   esac
-  asset="taskspec-meshd-$platform-$machine"
+  exe=""
+  [[ "$platform" == "windows" ]] && exe=".exe"  # Windows runs only files with an executable suffix
+  asset="taskspec-meshd-$platform-$machine$exe"
   asset_path=""
   for candidate in \
     "${TASKSPEC_MESH_ASSET_DIR:-}/$asset" \
@@ -238,12 +258,12 @@ install_mesh() {
     mkdir -p "$ENGINE_DEST/libexec"
     cp "$asset_path" "$ENGINE_DEST/libexec/.taskspec-meshd.tmp"
     chmod 0755 "$ENGINE_DEST/libexec/.taskspec-meshd.tmp"
-    mv "$ENGINE_DEST/libexec/.taskspec-meshd.tmp" "$ENGINE_DEST/libexec/taskspec-meshd"
+    mv "$ENGINE_DEST/libexec/.taskspec-meshd.tmp" "$ENGINE_DEST/libexec/taskspec-meshd$exe"
   fi
   cp "$asset_path" "$BIN_DIR/.taskspec-meshd.tmp"
   chmod 0755 "$BIN_DIR/.taskspec-meshd.tmp"
-  mv "$BIN_DIR/.taskspec-meshd.tmp" "$BIN_DIR/taskspec-meshd"
-  "$BIN_DIR/taskspec-meshd" --version-json | python3 -c \
+  mv "$BIN_DIR/.taskspec-meshd.tmp" "$BIN_DIR/taskspec-meshd$exe"
+  "$BIN_DIR/taskspec-meshd$exe" --version-json | python3 -c \
     'import json,sys; v=json.load(sys.stdin); assert v["contract"] == "TaskMeshAPI/v1alpha1" and v["product_version"] == sys.argv[1]' \
     "$PINNED_VERSION" || { echo "install.sh: TaskMesh helper failed its version check" >&2; return 1; }
   echo "mesh:   $BIN_DIR/taskspec-meshd"

@@ -1,0 +1,49 @@
+{
+  "contract": "TaskMeshReviewerReport/v1",
+  "release_version": "3.10.0",
+  "observed_at": "2026-11-11T20:23:34Z",
+  "result": "pass",
+  "checks": [
+    {
+      "id": "installation",
+      "state": "pass",
+      "proof": "Core-only, checksum-backed copy, tamper rejection, and version mismatch cases executed by tests/test-mesh-install.sh."
+    },
+    {
+      "id": "cross-cockpit",
+      "state": "pass",
+      "proof": "tests/test-mesh-cockpit.sh observed and controlled one durable run from independent clients."
+    },
+    {
+      "id": "documentation-contract",
+      "state": "pass",
+      "proof": "tests/test-readme-contract.sh and tests/lint-docs.sh passed."
+    },
+    {
+      "id": "assurance-language",
+      "state": "pass",
+      "proof": "docs/trust/taskmesh-boundaries.md states the sandbox boundary; supervised-adapter suite keeps worktrees unclaimed as sandboxes."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/getting-started/taskmesh.md",
+      "digest": "sha256:d0759c8e3444a8ad78193ace9fde2b5d33374e3335072cfc1dab4e34df361074"
+    },
+    {
+      "path": "docs/reference/taskmesh-contracts.md",
+      "digest": "sha256:7476fea63dc150e2cf420162700c78be2be9710404c66076cad2bd3ceb920940"
+    },
+    {
+      "path": "docs/trust/taskmesh-boundaries.md",
+      "digest": "sha256:8646b594d8ce69cfcbf88455c3ba5106e7c6ec1e90e163ce19b391c6824c1209"
+    },
+    {
+      "path": "tests/test-mesh-cockpit.sh",
+      "digest": "sha256:daea5dc36122cd323f760615932174cb0664e3c1b102cec2ea3a3dba7030873b"
+    }
+  ],
+  "limitations": [
+    "Automated checks by tools/build-mesh-candidate-evidence.py; the product-boundary review is the owner's at release."
+  ]
+}

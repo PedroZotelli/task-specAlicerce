@@ -10,6 +10,9 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import bash_executable  # noqa: E402
+
 START = "<!-- agent-context:start -->"
 END = "<!-- agent-context:end -->"
 
@@ -20,7 +23,7 @@ def escape(value: str) -> str:
 
 def render() -> str:
     context = json.loads(subprocess.check_output(
-        [str(ROOT / "bin" / "taskspec"), "agent-context"], cwd=ROOT, text=True,
+        [bash_executable(), str(ROOT / "bin" / "taskspec"), "agent-context"], cwd=ROOT, text=True,
     ))
     lines = [START, "| Command | Mutation contract | Stable tokens |", "|---|---|---|"]
     for command, contract in context["commands"].items():
@@ -50,7 +53,7 @@ def main() -> int:
         print("CLI_REFERENCE=STALE missing markers", file=sys.stderr)
         return 1
     if args.write:
-        path.write_text(text[:start] + expected + text[end + len(END):], encoding="utf-8")
+        path.write_text(text[:start] + expected + text[end + len(END):], encoding="utf-8", newline="\n")
         print("CLI_REFERENCE=WRITTEN")
         return 0
     if text[start:end + len(END)] != expected:

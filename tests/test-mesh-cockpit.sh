@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Windows: the TaskMesh daemon is a native process that Git Bash's kill cannot
+# signal, and a live daemon keeps its database open, so cleanup could not remove it.
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    kill() {
+      local pid status=0
+      for pid in "$@"; do
+        [[ "$pid" == -* ]] && continue
+        builtin kill "$pid" 2>/dev/null || taskkill //F //T //PID "$pid" >/dev/null 2>&1 || status=1
+      done
+      return "$status"
+    }
+    ;;
+esac
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLI="$ROOT/bin/taskspec"
 TMP="$(mktemp -d -t taskspec-mesh-cockpit-XXXXXX)"
 REPO="$TMP/repository"
-HELPER="$TMP/taskspec-meshd"
+HELPER="$TMP/taskspec-meshd$(go env GOEXE)"  # .exe on Windows
 ADAPTER_DIR="$TMP/adapters"
 FAKE="$TMP/fake-adapter.sh"
 DAEMON_PID=""

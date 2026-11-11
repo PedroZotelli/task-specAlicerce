@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: luanmorenommaciel/task-spec/harness/github-action@main
+      - uses: PedroZotelli/task-specLuan/harness/github-action@main
         with:
           tasks-glob: "tasks/T-*.md"
           mode: run            # validate | run

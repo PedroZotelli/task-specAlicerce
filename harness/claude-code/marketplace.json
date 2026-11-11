@@ -1,12 +1,12 @@
 {
   "name": "task-spec",
-  "version": "3.9.0",
+  "version": "3.10.0",
   "description": "The task-spec engine — atomic, vendor-neutral, self-verifying T-*.md task units with runnable evals, behavior↔eval traceability, dual gates (PRE seal / POST accept), and an L0/L1/L2 executor conformance suite that any conformant agentic engine (Claude, Codex, Kimi, GLM, Gemini) can crank.",
   "owner": {
-    "name": "Luan Moreno",
-    "email": "luan.moreno@owshq.com"
+    "name": "Pedro Zotelli",
+    "url": "https://github.com/PedroZotelli"
   },
-  "repository": "https://github.com/luanmorenommaciel/task-spec",
+  "repository": "https://github.com/PedroZotelli/task-specLuan",
   "category": "agentic-tooling",
   "tags": [
     "task-spec",

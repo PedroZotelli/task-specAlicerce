@@ -1,0 +1,50 @@
+{
+  "contract": "TaskMeshReleaseEvidence/v1",
+  "version": "3.10.0",
+  "api": "TaskMeshAPI/v1alpha1",
+  "generated_at": "2026-11-11T20:23:34Z",
+  "source": {
+    "branch": "feature/suporte-multiplataforma",
+    "commit_before_evidence_finalization": "239be8130b16ff80e3cf8fd6dfb79281267bdb08"
+  },
+  "release_status": "candidate",
+  "repository_visibility": "public",
+  "quality_baseline": {
+    "contract": "TaskSpecQualityScorecard/v1",
+    "release": "3.8.1",
+    "path": "release/3.8.1/scorecard.json",
+    "digest": "sha256:a0c7349db6df8593dccc6be9a72716b6377df9111f63f7fc9b8c73304866f4d9",
+    "score": 97,
+    "regression": false
+  },
+  "gates": {
+    "local_conformance": "pass",
+    "live_local_isolation": "not_run",
+    "local_install_matrix": "pass",
+    "cross_cockpit_demo": "pass",
+    "hosted_ubuntu": "not_run",
+    "hosted_macos": "not_run",
+    "hosted_live_isolation": "not_run",
+    "private_remote_install": "not_run",
+    "private_provenance": "not_run",
+    "publication": "not_run"
+  },
+  "artifacts": [
+    {
+      "path": "release/3.10.0/mesh-conformance.json",
+      "digest": "sha256:5b1486e756c8e2fd24b661b84168e3eb189127f3fd10e9b126ad93c0b8b7f65f"
+    },
+    {
+      "path": "release/3.10.0/reviewer-report.json",
+      "digest": "sha256:22fd85cc94bda941fc27d72fbb5cf4b0ab599b0d1f7d79dc984827f3734663c0"
+    }
+  ],
+  "claims": {
+    "hosted_control_plane": false,
+    "production_reliability": false,
+    "protocol_certification": false,
+    "tier1_from_worktrees": false,
+    "automatic_target_merge": false
+  },
+  "next_gate": "Hosted CI on Ubuntu, macOS, and Windows, then signed provenance and publication of v3.10.0."
+}

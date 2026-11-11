@@ -45,7 +45,7 @@ def update(path: pathlib.Path, assignments: dict[str, Any], removals: set[str] |
     rendered = "---\n" + "\n".join(output) + text[end:]
     temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     try:
-        temporary.write_text(rendered, encoding="utf-8")
+        temporary.write_text(rendered, encoding="utf-8", newline="\n")
         if os.environ.get("TASKSPEC_TEST_CRASH_BEFORE_FRONTMATTER_REPLACE") == "1":
             raise RuntimeError("injected crash before frontmatter replacement")
         os.replace(temporary, path)

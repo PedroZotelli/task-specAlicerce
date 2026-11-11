@@ -15,7 +15,8 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DEFAULT_TARGET = pathlib.Path("/Users/luanmorenomaciel/GitHub/converge/skills/task-spec")
+# The Converge checkout beside this one, wherever both were cloned.
+DEFAULT_TARGET = pathlib.Path(__file__).resolve().parents[2] / "convergeLuan" / "skills" / "task-spec"
 
 MAPPINGS = {
     "src/lib/_lib.sh": "scripts/_lib.sh",
@@ -101,7 +102,7 @@ def build() -> tuple[dict[str, bytes], dict]:
     mapped_hashes = {path: sha(data) for path, data in sorted(rendered.items())}
     lock = {
         "contract": "TaskSpecUpstreamLock/v1",
-        "upstream": "https://github.com/luanmorenommaciel/task-spec",
+        "upstream": "https://github.com/PedroZotelli/task-specLuan",
         "release": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
         "release_tag": "v" + (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
         "source_commit": git_head(),

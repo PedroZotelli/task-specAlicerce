@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -207,12 +206,12 @@ func (store *Store) ExecuteAttempt(parent context.Context, attemptID string) err
 	}
 	output := &boundedBuffer{remaining: 1024 * 1024}
 	command.Stdout, command.Stderr = output, output
-	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	SetProcessGroup(command)
 	command.Cancel = func() error {
 		if command.Process == nil {
 			return nil
 		}
-		return syscall.Kill(-command.Process.Pid, syscall.SIGTERM)
+		return TerminateProcessGroup(command)
 	}
 	command.WaitDelay = 5 * time.Second
 	started := NowUTC()

@@ -110,15 +110,18 @@ func AdapterOrder(definitions map[string]AdapterDefinition) []string {
 func ProbeAdapter(definition AdapterDefinition) AdapterProbe {
 	probe := AdapterProbe{Contract: "ExecutorCapability/v1", Adapter: definition.Name, Harness: definition.Harness, AssuranceModes: definition.AssuranceModes, Tools: []string{"read", "edit", "shell"}, Network: "unrestricted", ObservedAt: NowUTC()}
 	probe.Limits.MaxParallel, probe.Limits.MaxOutputBytes, probe.Limits.TimeoutSec = 1, 1048576, 1800
-	executable, err := exec.LookPath(definition.Executable)
+	executable, leading, err := ResolveProgram(definition.Executable)
 	if err != nil {
 		probe.AdapterVersion, probe.ReasonUnavailable = "unavailable", err.Error()
 		return probe
 	}
 	probe.Executable = executable
+	if len(leading) > 0 {
+		probe.Executable = leading[0]
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, executable, definition.VersionArgs...)
+	command := exec.CommandContext(ctx, executable, append(leading, definition.VersionArgs...)...)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		probe.AdapterVersion, probe.ReasonUnavailable = "unavailable", strings.TrimSpace(string(output))+": "+err.Error()
@@ -129,11 +132,12 @@ func ProbeAdapter(definition AdapterDefinition) AdapterProbe {
 }
 
 func adapterCommand(definition AdapterDefinition, workspace, prompt string, timeout time.Duration, model, provider string) (string, []string, error) {
-	executable, err := exec.LookPath(definition.Executable)
+	executable, leading, err := ResolveProgram(definition.Executable)
 	if err != nil {
 		return "", nil, err
 	}
-	arguments := make([]string, 0, len(definition.Command)+4)
+	arguments := make([]string, 0, len(leading)+len(definition.Command)+4)
+	arguments = append(arguments, leading...)
 	hasModel, hasProvider := false, false
 	for _, argument := range definition.Command {
 		if argument == "--model" || argument == "{model}" {

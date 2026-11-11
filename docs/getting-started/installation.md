@@ -6,7 +6,7 @@ harness destinations. It never stores model/provider credentials.
 The repository and release remain private. Authenticate GitHub before cloning:
 
 ```bash
-git clone --depth 1 https://github.com/luanmorenommaciel/task-spec.git \
+git clone --depth 1 https://github.com/PedroZotelli/task-specLuan.git \
   "$HOME/.local/share/task-spec-src"
 
 # User-level skills for Codex/Kimi, Claude Code, Grok Build, and Cursor
@@ -23,20 +23,21 @@ bash "$HOME/.local/share/task-spec-src/install.sh" \
   --target /path/to/repository --copy
 ```
 
-For a checksum-backed installation of the private `v3.9.0` release, download
+For a checksum-backed installation of a published `v3.10.0` release (this fork has
+not published one yet), download
 the helper assets as well only when TaskMesh is wanted:
 
 ```bash
 gh auth status
 release_dir="$(mktemp -d)"
-gh release download v3.9.0 \
-  --repo luanmorenommaciel/task-spec \
-  --pattern 'task-spec-3.9.0.tar.gz*' \
+gh release download v3.10.0 \
+  --repo PedroZotelli/task-specLuan \
+  --pattern 'task-spec-3.10.0.tar.gz*' \
   --pattern 'taskspec-meshd-*' \
   --dir "$release_dir"
-(cd "$release_dir" && shasum -a 256 -c task-spec-3.9.0.tar.gz.sha256)
-tar -xzf "$release_dir/task-spec-3.9.0.tar.gz" -C "$release_dir"
-bash "$release_dir/task-spec-3.9.0/install.sh" --global --copy --with-mesh
+(cd "$release_dir" && shasum -a 256 -c task-spec-3.10.0.tar.gz.sha256)
+tar -xzf "$release_dir/task-spec-3.10.0.tar.gz" -C "$release_dir"
+bash "$release_dir/task-spec-3.10.0/install.sh" --global --copy --with-mesh
 ```
 
 Anonymous raw-file and release-asset URLs do not work while the repository is
@@ -86,8 +87,7 @@ credentials or modify shell startup files.
 For npm/GitHub:
 
 ```bash
-gh auth setup-git
-npm install -g git+https://github.com/luanmorenommaciel/task-spec.git#v3.9.0
+npm install -g git+https://github.com/PedroZotelli/task-specLuan.git#v3.10.0
 taskspec-install --global --with-mesh
 ```
 
@@ -97,6 +97,6 @@ the hosted release smoke and `make check`, respectively.
 For Claude marketplace:
 
 ```text
-/plugin marketplace add luanmorenommaciel/task-spec
+/plugin marketplace add PedroZotelli/task-specLuan
 /plugin install task-spec@taskspec
 ```

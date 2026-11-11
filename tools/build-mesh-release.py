@@ -12,7 +12,10 @@ import subprocess
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-TARGETS = (("darwin", "amd64"), ("darwin", "arm64"), ("linux", "amd64"), ("linux", "arm64"))
+TARGETS = (
+    ("darwin", "amd64"), ("darwin", "arm64"), ("linux", "amd64"), ("linux", "arm64"),
+    ("windows", "amd64"), ("windows", "arm64"),
+)
 
 
 def digest(path: pathlib.Path) -> str:
@@ -33,7 +36,8 @@ def main() -> int:
         raise SystemExit("unsupported TaskMesh target: " + ", ".join(sorted(requested)))
     artifacts = []
     for operating_system, architecture in targets:
-        name = f"taskspec-meshd-{operating_system}-{architecture}"
+        suffix = ".exe" if operating_system == "windows" else ""  # Windows starts only .exe files
+        name = f"taskspec-meshd-{operating_system}-{architecture}{suffix}"
         path = out_dir / name
         environment = dict(os.environ, CGO_ENABLED="0", GOOS=operating_system, GOARCH=architecture)
         subprocess.run(
@@ -44,7 +48,7 @@ def main() -> int:
         )
         path.chmod(0o755)
         sha = digest(path)
-        (out_dir / f"{name}.sha256").write_text(f"{sha}  {name}\n", encoding="utf-8")
+        (out_dir / f"{name}.sha256").write_text(f"{sha}  {name}\n", encoding="utf-8", newline="\n")
         artifacts.append({"name": name, "os": operating_system, "arch": architecture, "sha256": sha, "size": path.stat().st_size})
     manifest = {
         "contract": "TaskMeshBinaryManifest/v1",
@@ -54,9 +58,9 @@ def main() -> int:
         "artifacts": artifacts,
     }
     manifest_path = out_dir / "taskmesh-binaries.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
     checksums = "".join(f"{row['sha256']}  {row['name']}\n" for row in artifacts)
-    (out_dir / "taskmesh-checksums.txt").write_text(checksums, encoding="utf-8")
+    (out_dir / "taskmesh-checksums.txt").write_text(checksums, encoding="utf-8", newline="\n")
     print(f"MESH_BINARIES=READY targets={len(artifacts)} manifest={manifest_path}")
     return 0
 

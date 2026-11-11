@@ -121,11 +121,12 @@ def sign_statement(
 ) -> dict[str, Any]:
     payload = canonical(statement)
     signed = pae(PAYLOAD_TYPE, payload)
-    with tempfile.NamedTemporaryFile() as payload_file:
-        payload_file.write(signed)
-        payload_file.flush()
+    # Closed files in a temporary directory: Windows cannot reopen an open temporary file by name.
+    with tempfile.TemporaryDirectory() as scratch:
+        payload_file = pathlib.Path(scratch) / "payload"
+        payload_file.write_bytes(signed)
         signature = openssl(
-            "pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", payload_file.name
+            "pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", str(payload_file)
         )
     return {
         "payloadType": PAYLOAD_TYPE,
@@ -176,15 +177,15 @@ def verify_envelope(args: argparse.Namespace) -> dict[str, Any]:
     if signatures[0].get("keyid") != fingerprint(public_key)[:16]:
         raise ProvenanceError("DSSE keyid does not match the trusted public key")
     signed = pae(PAYLOAD_TYPE, payload)
-    with tempfile.NamedTemporaryFile() as payload_file, tempfile.NamedTemporaryFile() as signature_file:
-        payload_file.write(signed)
-        payload_file.flush()
-        signature_file.write(signature)
-        signature_file.flush()
+    with tempfile.TemporaryDirectory() as scratch:
+        payload_file = pathlib.Path(scratch) / "payload"
+        signature_file = pathlib.Path(scratch) / "signature"
+        payload_file.write_bytes(signed)
+        signature_file.write_bytes(signature)
         completed = subprocess.run(
             [
                 "openssl", "pkeyutl", "-verify", "-rawin", "-pubin", "-inkey", str(public_key),
-                "-sigfile", signature_file.name, "-in", payload_file.name,
+                "-sigfile", str(signature_file), "-in", str(payload_file),
             ],
             capture_output=True,
             check=False,
@@ -238,7 +239,7 @@ def write_atomic(path: pathlib.Path, value: dict[str, Any], force: bool) -> None
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
             json.dump(value, handle, indent=2, sort_keys=False)
             handle.write("\n")
             handle.flush()

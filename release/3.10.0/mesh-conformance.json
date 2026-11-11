@@ -1,0 +1,71 @@
+{
+  "contract": "TaskMeshConformanceEvidence/v1",
+  "version": "3.10.0",
+  "observed_at": "2026-11-11T20:23:34Z",
+  "platform": {
+    "os": "Windows",
+    "architecture": "amd64",
+    "docker_server": null
+  },
+  "source_commit_before_evidence_finalization": "239be8130b16ff80e3cf8fd6dfb79281267bdb08",
+  "suites": [
+    {
+      "id": "contracts",
+      "state": "pass",
+      "token": "MESH_CONTRACTS=READY"
+    },
+    {
+      "id": "daemon",
+      "state": "pass",
+      "token": "MESH_DAEMON=READY"
+    },
+    {
+      "id": "leases-and-fencing",
+      "state": "pass",
+      "token": "MESH_LEASES=READY"
+    },
+    {
+      "id": "routing-and-integration",
+      "state": "pass",
+      "token": "MESH_ROUTING_INTEGRATION=READY"
+    },
+    {
+      "id": "supervised-adapters",
+      "state": "pass",
+      "token": "MESH_ADAPTERS=READY"
+    },
+    {
+      "id": "cross-cockpit-mcp",
+      "state": "pass",
+      "token": "MESH_COCKPIT=READY"
+    },
+    {
+      "id": "crash-recovery",
+      "state": "pass",
+      "token": "MESH_RECOVERY=READY"
+    },
+    {
+      "id": "demonstration",
+      "state": "pass",
+      "token": "MESH_DEMO=READY"
+    },
+    {
+      "id": "core-and-mesh-install",
+      "state": "pass",
+      "token": "MESH_INSTALL=READY"
+    }
+  ],
+  "invariants": {
+    "canonical_task_authority_only": true,
+    "target_branch_unchanged": true,
+    "one_authoritative_fenced_attempt": true,
+    "advisor_cannot_widen_eligibility": true,
+    "supervised_worktree_not_claimed_as_sandbox": true,
+    "credential_values_not_retained": true
+  },
+  "limitations": [
+    "The local corridor is synthetic control-plane proof, not long-running production reliability.",
+    "Suite `autonomous-isolation` did not run its proof on this host (Windows) and is not claimed.",
+    "Hosted Ubuntu, macOS, and Windows evidence is retained separately after it executes."
+  ]
+}

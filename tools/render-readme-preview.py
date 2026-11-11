@@ -49,7 +49,7 @@ def main() -> int:
         return 1
     for index, source in enumerate(blocks, 1):
         input_path, output_path = out / f"diagram-{index}.mmd", out / f"diagram-{index}.svg"
-        input_path.write_text(source, encoding="utf-8")
+        input_path.write_text(source, encoding="utf-8", newline="\n")
         completed = subprocess.run([
             "npx", "--yes", f"@mermaid-js/mermaid-cli@{args.mermaid_version}",
             "-i", str(input_path), "-o", str(output_path), "-t", "dark", "-b", "transparent",
@@ -62,8 +62,8 @@ def main() -> int:
     if assets.exists():
         shutil.rmtree(assets)
     shutil.copytree(ROOT / "assets" / "readme", assets)
-    (out / "README.preview.md").write_text(text, encoding="utf-8")
-    (out / "readme.css").write_text(CSS, encoding="utf-8")
+    (out / "README.preview.md").write_text(text, encoding="utf-8", newline="\n")
+    (out / "readme.css").write_text(CSS, encoding="utf-8", newline="\n")
     completed = subprocess.run([
         "pandoc", "--from=gfm", "--to=html5", "--standalone", "--metadata", "title=Task-Spec README preview",
         "--css=readme.css", "README.preview.md", "-o", "index.html",

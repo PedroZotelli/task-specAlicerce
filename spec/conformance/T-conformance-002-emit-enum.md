@@ -56,17 +56,18 @@ eval_1() {
 }
 
 eval_2() {
-  jq -r '.outcome' spec/conformance/_workdir/c002_metrics.jsonl \
-    | grep -Eq '^(pass|fail|retry_with_reason|parked_with_context)$'
+  python3 -c 'import json,sys; rows=[json.loads(l) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]; sys.exit(0 if any(r.get("outcome") in {"pass","fail","retry_with_reason","parked_with_context"} for r in rows) else 1)' \
+    spec/conformance/_workdir/c002_metrics.jsonl
 }
 
 eval_3() {
-  jq -r '.outcome' spec/conformance/_workdir/c002_metrics.jsonl \
-    | tail -1 | grep -qx 'retry_with_reason'
+  python3 -c 'import json,sys; rows=[json.loads(l) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]; sys.exit(0 if rows and rows[-1].get("outcome") == "retry_with_reason" else 1)' \
+    spec/conformance/_workdir/c002_metrics.jsonl
 }
 
 eval_4() {
-  test "$(jq -r '.reason' spec/conformance/_workdir/c002_metrics.jsonl | tail -1)" != "null"
+  python3 -c 'import json,sys; rows=[json.loads(l) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]; sys.exit(0 if rows and rows[-1].get("reason") is not None else 1)' \
+    spec/conformance/_workdir/c002_metrics.jsonl
 }
 ```
 
@@ -107,7 +108,7 @@ agent_contract:
   read: [intent, contract, guardrails, operations]
   produce:
     - tests
-  required_tools: [bash, jq]
+  required_tools: [bash, python3]
   timeout_minutes: 10
   sandbox_type: host
   output_artifacts:

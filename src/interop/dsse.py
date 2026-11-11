@@ -40,9 +40,11 @@ def export(receipt: dict[str, Any], private_key: pathlib.Path, public_key: pathl
         raise ValueError("DSSE export accepts only v2 receipts")
     payload = canonical(receipt)
     signed = pae(PAYLOAD_TYPE, payload)
-    with tempfile.NamedTemporaryFile() as handle:
-        handle.write(signed); handle.flush()
-        signature = openssl("pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", handle.name)
+    # Closed files in a temporary directory: Windows cannot reopen an open temporary file by name.
+    with tempfile.TemporaryDirectory() as scratch:
+        handle = pathlib.Path(scratch) / "payload"
+        handle.write_bytes(signed)
+        signature = openssl("pkeyutl", "-sign", "-rawin", "-inkey", str(private_key), "-in", str(handle))
     return {
         "payloadType": PAYLOAD_TYPE,
         "payload": base64.b64encode(payload).decode("ascii"),
@@ -66,12 +68,14 @@ def verify(envelope: dict[str, Any], public_key: pathlib.Path) -> list[str]:
         if not str(receipt.get("contract", "")).endswith("/v2"):
             errors.append("DSSE payload is not a v2 receipt")
         signed = pae(PAYLOAD_TYPE, payload)
-        with tempfile.NamedTemporaryFile() as payload_file, tempfile.NamedTemporaryFile() as signature_file:
-            payload_file.write(signed); payload_file.flush()
-            signature_file.write(signature); signature_file.flush()
+        with tempfile.TemporaryDirectory() as scratch:
+            payload_file = pathlib.Path(scratch) / "payload"
+            signature_file = pathlib.Path(scratch) / "signature"
+            payload_file.write_bytes(signed)
+            signature_file.write_bytes(signature)
             result = subprocess.run(
                 ["openssl", "pkeyutl", "-verify", "-rawin", "-pubin", "-inkey", str(public_key),
-                 "-sigfile", signature_file.name, "-in", payload_file.name],
+                 "-sigfile", str(signature_file), "-in", str(payload_file)],
                 capture_output=True, check=False,
             )
             if result.returncode:
@@ -93,7 +97,7 @@ def main() -> int:
         if args.command == "export":
             receipt = json.loads(pathlib.Path(args.receipt).read_text(encoding="utf-8"))
             value = export(receipt, pathlib.Path(args.private_key), pathlib.Path(args.public_key))
-            pathlib.Path(args.out).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+            pathlib.Path(args.out).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8", newline="\n")
             print(f"DSSE=EXPORTED path={args.out}")
         else:
             value = json.loads(pathlib.Path(args.envelope).read_text(encoding="utf-8"))

@@ -40,7 +40,7 @@ func integerOption(arguments []string, name string, fallback, minimum, maximum i
 }
 
 func gitValue(repository Repository, arguments ...string) (string, error) {
-	command := exec.Command("git", append([]string{"-C", repository.Root}, arguments...)...)
+	command := exec.Command("git", append(append(append([]string{}, gitPlatformArguments...), "-C", repository.Root), arguments...)...)
 	output, err := command.Output()
 	if err != nil {
 		return "", err

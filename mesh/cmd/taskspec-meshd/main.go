@@ -7,13 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/luanmorenomaciel/task-spec/mesh/internal/mesh"
 )
 
-var productVersion = "3.9.0"
+var productVersion = "3.10.0"
 
 func main() {
 	os.Exit(run(os.Args[1:]))
@@ -116,7 +115,7 @@ func ensureDaemon(repository mesh.Repository) error {
 	command := exec.Command(executable, "--repository", repository.Root, "serve", "--foreground")
 	command.Stdout, command.Stderr = logFile, logFile
 	command.Dir = repository.Root
-	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	mesh.SetProcessGroup(command)
 	if err := command.Start(); err != nil {
 		return err
 	}

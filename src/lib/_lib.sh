@@ -24,7 +24,7 @@
 #   3) add a CHANGELOG.md entry
 #   4) bump version field in plugin.json + marketplace.json (if present)
 # The doc-consistency lint asserts (1) == (2) == (4).
-TASKSPEC_VERSION="3.9.0"
+TASKSPEC_VERSION="3.10.0"
 
 # ----- Resolve skill root from this file's location -----
 # Works whether sourced from scripts/ or via an indirect symlink.
@@ -37,6 +37,23 @@ export TASKSPEC_VERSION TASKSPEC_SKILL_DIR
 # workspace layout select it explicitly through TASKSPEC_BACKLOG_DIR.
 : "${TASKSPEC_BACKLOG_DIR:=tasks}"
 export TASKSPEC_BACKLOG_DIR
+
+# ----- UTF-8 for every Python child: Windows consoles default to a legacy code page -----
+: "${PYTHONUTF8:=1}"
+export PYTHONUTF8
+
+# ----- Windows: Python ends text lines with \r\n, and $(...) keeps the \r -----
+# A captured "3\r" then fails numeric tests and string comparisons silently, so
+# python3 output reaching these scripts is normalized to LF. Exit status is kept;
+# stderr is untouched. Elsewhere nothing changes.
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    python3() {
+      command python3 "$@" | tr -d '\r'
+      return "${PIPESTATUS[0]}"
+    }
+    ;;
+esac
 
 # ----- --version handler -----
 # Usage at the top of arg parsing:

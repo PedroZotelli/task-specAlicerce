@@ -33,7 +33,7 @@ runs:
       run: |
         set -euo pipefail
         git clone --depth 1 --branch "${{ inputs.engine-ref }}" \
-          https://github.com/luanmorenommaciel/task-spec.git "$RUNNER_TEMP/task-spec"
+          https://github.com/PedroZotelli/task-specLuan.git "$RUNNER_TEMP/task-spec"
         echo "$RUNNER_TEMP/task-spec/bin" >> "$GITHUB_PATH"
         taskspec doctor
 

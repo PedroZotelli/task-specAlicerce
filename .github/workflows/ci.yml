@@ -28,16 +28,44 @@ jobs:
   check:
     name: make check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # The Windows suite is the slowest (process start-up dominates).
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash  # Git Bash on Windows
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Retained release evidence is verified against its release commit.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Provide python3, make, and shellcheck where the runner image lacks them
+        run: |
+          if ! command -v python3 >/dev/null 2>&1; then
+            python_dir="$(dirname "$(command -v python)")"
+            cp "$python_dir/python.exe" "$python_dir/python3.exe"
+          fi
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            case "$RUNNER_OS" in
+              macOS) brew install shellcheck ;;
+              Windows) choco install shellcheck --no-progress -y ;;
+              *) sudo apt-get install -y shellcheck ;;
+            esac
+          fi
+          if ! command -v make >/dev/null 2>&1 && [[ "$RUNNER_OS" == Windows ]]; then
+            choco install make --no-progress -y
+          fi
 
       - name: Install pinned Go toolchain for optional TaskMesh
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

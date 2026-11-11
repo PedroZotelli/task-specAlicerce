@@ -9,7 +9,7 @@ import (
 )
 
 func runGit(repository Repository, workingDirectory string, arguments ...string) error {
-	command := exec.Command("git", arguments...)
+	command := exec.Command("git", append(append([]string{}, gitPlatformArguments...), arguments...)...)
 	command.Dir = workingDirectory
 	if output, err := command.CombinedOutput(); err != nil {
 		return fmt.Errorf("git %s: %s: %w", strings.Join(arguments, " "), strings.TrimSpace(string(output)), err)

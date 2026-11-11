@@ -3,6 +3,12 @@
 
 .PHONY: check test lint doctor conformance release-audit mesh-check mesh-release-audit
 
+# Windows (Git Bash): Python defaults to a legacy code page there; tests assume UTF-8,
+# as on Linux and macOS.
+ifeq ($(OS),Windows_NT)
+export PYTHONUTF8 := 1
+endif
+
 check: doctor lint test conformance
 	@echo "CHECK=READY"
 
