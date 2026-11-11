@@ -13,10 +13,16 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- The repository is now `PedroZotelli/task-specAlicerce`, a standalone repository (no longer in the original's fork network). Links, install commands and manifests use the new name; GitHub redirects the old one.
+
 ## [3.10.0] — 2026-11-11
 
 First release of Pedro Zotelli's own line of this fork,
-https://github.com/PedroZotelli/task-specLuan. Authorship of the original work
+https://github.com/PedroZotelli/task-specAlicerce. Authorship of the original work
 stays with Luan Moreno Medeiros Maciel; see `NOTICE`. This release also carries
 the TaskMesh roster work listed under Added, which was unreleased upstream.
 

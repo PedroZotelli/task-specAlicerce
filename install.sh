@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PINNED_VERSION="3.10.0"
-REPOSITORY="PedroZotelli/task-specLuan"
+REPOSITORY="PedroZotelli/task-specAlicerce"
 TARGET="$PWD"
 MODE="copy"
 BIN_DIR="${HOME}/.local/bin"

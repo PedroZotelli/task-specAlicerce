@@ -356,7 +356,7 @@ for the concept.
 The engine is portable as a single repo:
 
 ```bash
-git clone https://github.com/PedroZotelli/task-specLuan.git
+git clone https://github.com/PedroZotelli/task-specAlicerce.git
 ln -s "$PWD/task-spec/bin/taskspec" /usr/local/bin/taskspec
 # optional: bash task-spec/src/lib/install.sh --target /path/to/repo
 # taskspec now works in EVERY repo on that machine

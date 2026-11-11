@@ -16,12 +16,12 @@ openssl pkey -in "$WORK/private.pem" -pubout -out "$WORK/public.pem"
 python3 "$TOOL" create \
   --release-version 3.8.1 \
   --release-ref v3.8.1-rc.3 \
-  --source-repository PedroZotelli/task-specLuan \
+  --source-repository PedroZotelli/task-specAlicerce \
   --source-commit "$COMMIT" \
   --subject "$WORK/dist/task-spec-3.8.1.tar.gz" \
   --sbom "$WORK/dist/task-spec-3.8.1.spdx.json" \
-  --builder-id https://github.com/PedroZotelli/task-specLuan/actions/workflows/release-install-smoke.yml \
-  --invocation-id https://github.com/PedroZotelli/task-specLuan/actions/runs/1 \
+  --builder-id https://github.com/PedroZotelli/task-specAlicerce/actions/workflows/release-install-smoke.yml \
+  --invocation-id https://github.com/PedroZotelli/task-specAlicerce/actions/runs/1 \
   --started-at 2026-08-16T18:00:00Z \
   --finished-at 2026-08-16T18:01:00Z \
   --private-key "$WORK/private.pem" \
@@ -32,7 +32,7 @@ VERIFY=(
   python3 "$TOOL" verify
   --release-version 3.8.1
   --release-ref v3.8.1-rc.3
-  --source-repository PedroZotelli/task-specLuan
+  --source-repository PedroZotelli/task-specAlicerce
   --source-commit "$COMMIT"
   --subject "$WORK/dist/task-spec-3.8.1.tar.gz"
   --sbom "$WORK/dist/task-spec-3.8.1.spdx.json"
@@ -43,7 +43,7 @@ VERIFY=(
 
 if python3 "$TOOL" create \
   --release-version 3.8.1 --release-ref v3.8.1-rc.3 \
-  --source-repository PedroZotelli/task-specLuan --source-commit "$COMMIT" \
+  --source-repository PedroZotelli/task-specAlicerce --source-commit "$COMMIT" \
   --subject "$WORK/dist/task-spec-3.8.1.tar.gz" --sbom "$WORK/dist/task-spec-3.8.1.spdx.json" \
   --builder-id fixture --invocation-id fixture \
   --started-at 2026-08-16T18:00:00Z --finished-at 2026-08-16T18:01:00Z \

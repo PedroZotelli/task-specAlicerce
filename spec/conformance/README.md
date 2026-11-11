@@ -143,7 +143,7 @@ your-engine-repo/
 
 ### Vendoring procedure
 
-1. Clone the task-spec repo (https://github.com/PedroZotelli/task-specLuan —
+1. Clone the task-spec repo (https://github.com/PedroZotelli/task-specAlicerce —
    or fetch the released archive) at the SHA you want to vendor.
 2. Copy the entire `spec/conformance/` directory into your repo's
    `tests/conformance/task-spec/` (or a path of your choice).
@@ -151,7 +151,7 @@ your-engine-repo/
    vendored from. Example:
 
    ```text
-   https://github.com/PedroZotelli/task-specLuan/tree/<sha>/spec/conformance
+   https://github.com/PedroZotelli/task-specAlicerce/tree/<sha>/spec/conformance
    sha: <sha>
    vendored_at: 2026-07-21
    ```
