@@ -113,13 +113,23 @@ bundle = json.loads((root / "release/3.8.1/protocol-conformance.json").read_text
 assert isinstance(bundle, list) and {item["protocol"] for item in bundle} == {"A2A", "MCP"}
 sys.path.insert(0, str(root / "tests"))
 from schema_contracts import validate_instance
+# Retained evidence describes the bytes of the release it was produced for, so it
+# is checked against that release commit, not against a working tree that has moved on.
+import subprocess
+release_commit = json.loads((root / "release/evidence.json").read_text(encoding="utf-8"))["source"]["commit"]
+assert len(release_commit) == 40, release_commit
 for item in bundle:
     validate_instance(item, "protocol-conformance-evidence.schema.json")
     assert item["result"] == "pass"
     for artifact in item["artifacts"]:
         path = (root / artifact["path"]).resolve()
         path.relative_to(root.resolve())
-        observed = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        released = subprocess.run(
+            ["git", "-C", str(root), "show", f"{release_commit}:{artifact['path']}"],
+            capture_output=True, check=False,
+        )
+        assert released.returncode == 0, f"release commit {release_commit} is unavailable; fetch full history"
+        observed = "sha256:" + hashlib.sha256(released.stdout).hexdigest()
         assert observed == artifact["digest"], artifact["path"]
 PY
 

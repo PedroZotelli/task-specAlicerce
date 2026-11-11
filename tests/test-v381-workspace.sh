@@ -10,6 +10,15 @@ OUTSIDE="$(mktemp -d -t taskspec-v381-outside-XXXXXX)"
 trap 'rm -rf "$WORK" "$OUTSIDE"' EXIT
 PASS=0
 
+# A directory link any user can create: a junction on Windows (symlinks need a
+# privilege there and Git Bash silently copies instead), a symlink elsewhere.
+make_dir_link() {
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) cmd //c mklink //J "$(cygpath -w "$2")" "$(cygpath -w "$1")" >/dev/null ;;
+    *) ln -s "$1" "$2" ;;
+  esac
+}
+
 ok() { PASS=$((PASS + 1)); echo "ok $PASS - $1"; }
 must() {
   local label="$1"; shift
@@ -106,8 +115,9 @@ TASKSPEC_SIGNING_KEY=workspace-key TASKSPEC_BACKLOG_DIR="$R/tasks" \
 must_fail "acceptance traversal is rejected" "traversal" env \
   TASKSPEC_SIGNING_KEY=workspace-key TASKSPEC_BACKLOG_DIR="$R/tasks" \
   "$TS" accept --stamp --handoff "$H" --acceptance-dir ../escaped "$R/tasks/T-20260815-acceptance.md"
-mkdir -p "$R/.taskspec"; ln -s "$OUTSIDE" "$R/.taskspec/escaped-link"
-git -C "$R" add .taskspec/escaped-link; git -C "$R" commit -qm symlink-fixture
+mkdir -p "$R/.taskspec"; make_dir_link "$OUTSIDE" "$R/.taskspec/escaped-link"
+# Git records a symlink but sees an empty junction as nothing to add.
+git -C "$R" add .taskspec/escaped-link; git -C "$R" commit -qm symlink-fixture --allow-empty
 TASKSPEC_SIGNING_KEY=workspace-key TASKSPEC_BACKLOG_DIR="$R/tasks" \
   "$TS" handoff "$R/tasks/T-20260815-acceptance.md" --backend codex \
   --attempt-id 30303030-3030-4030-8030-303030303030 --out "$H" --force >/dev/null

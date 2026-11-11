@@ -11,6 +11,9 @@ from typing import Any
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import bash_executable  # noqa: E402
+
 PROTOCOL = "2026-07-28"
 LEGACY_PROTOCOL = "2025-06-18"
 PROTOCOL_KEY = "io.modelcontextprotocol/protocolVersion"
@@ -62,7 +65,7 @@ def rpc_error(ident: Any, code: int, message: str, data: Any = None) -> dict[str
 
 
 def mesh(arguments: list[str], *, dry_run: bool = False) -> dict[str, Any]:
-    command = [str(ROOT / "bin" / "taskspec"), "--json"]
+    command = [bash_executable(), str(ROOT / "bin" / "taskspec"), "--json"]
     if dry_run:
         command.append("--dry-run")
     command.extend(["mesh", *arguments])

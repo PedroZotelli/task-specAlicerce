@@ -10,6 +10,9 @@ import sys
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import bash_executable  # noqa: E402
+
 MODERN_PROTOCOL = "2026-07-28"
 LEGACY_PROTOCOL = "2025-06-18"
 PROTOCOL_VERSION_KEY = "io.modelcontextprotocol/protocolVersion"
@@ -22,8 +25,8 @@ TOOLS = [
 
 
 def invoke(name: str, args: dict[str, Any]) -> tuple[int, str]:
-    if name == "taskspec_validate": argv = [str(ROOT / "bin" / "taskspec"), "validate", "--no-state", args["spec"]]
-    elif name == "taskspec_handoff": argv = [str(ROOT / "bin" / "taskspec"), "handoff", args["spec"], "--backend", args["backend"]]
+    if name == "taskspec_validate": argv = [bash_executable(), str(ROOT / "bin" / "taskspec"), "validate", "--no-state", args["spec"]]
+    elif name == "taskspec_handoff": argv = [bash_executable(), str(ROOT / "bin" / "taskspec"), "handoff", args["spec"], "--backend", args["backend"]]
     else: return 1, f"unknown tool {name}"
     result = subprocess.run(argv, text=True, capture_output=True, check=False)
     return result.returncode, result.stdout + result.stderr

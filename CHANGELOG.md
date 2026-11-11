@@ -13,10 +13,60 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ---
 
-## [Unreleased]
+## [3.10.0] — 2026-11-11
+
+First release of Pedro Zotelli's own line of this fork,
+https://github.com/PedroZotelli/task-specLuan. Authorship of the original work
+stays with Luan Moreno Medeiros Maciel; see `NOTICE`. This release also carries
+the TaskMesh roster work listed under Added, which was unreleased upstream.
+
+### Fixed
+
+- Run on Windows (Git Bash) as well as Linux and macOS; 36 of 37 suites pass on
+  Windows 11, the remaining one needs PyYAML installed.
+- Python writes every text file with LF (`newline="\n"`). On Windows the default
+  turned `\n` into `\r\n`, rewrote users' task files, and changed hashed bytes.
+- Signing and verification hand `openssl` closed files in a temporary directory;
+  Windows cannot reopen an open temporary file by name.
+- `bin/taskspec` and `_lib.sh` set `PYTHONUTF8=1`, so output with `→` or accents no
+  longer fails on a legacy Windows code page.
+- The MCP servers, the engine matrix, and TaskMesh start scripts through their
+  interpreter and npm `.cmd` shims by name (`src/lib/portable_exec.py`).
+- `rebuild-state` compares physical paths, so `_state.yaml` never records an
+  absolute `path:` when the backlog is reached through a symlink or a junction
+  (`tests/test-state-relative-paths.sh`).
+- `install.sh --symlink` creates real Windows symlinks or stops with a clear
+  error; Git Bash used to copy silently while reporting links.
+- TaskMesh builds and runs on Windows: process groups and tree termination,
+  a per-user runtime directory, `.exe` helpers, adapter shebang scripts, and
+  `core.longpaths` for deeply nested worktrees. The autonomous container sandbox
+  refuses on Windows, because it runs as the host uid, which Windows lacks.
+- Retained 3.8.1 protocol evidence is checked against its release commit rather
+  than the moving working tree (requires full Git history).
+- The README's "Verified status" section is generated again from release evidence.
+- Scripts start Git Bash by its full path (`portable_exec.bash_executable`). A bare
+  `bash` from a python.org or virtualenv Python resolves to System32's WSL launcher,
+  because Windows searches System32 before PATH.
+- `_lib.sh` strips the `\r` Windows Python adds to captured output. Without it the
+  no-progress circuit breaker never fired (`3\r` is not a number) and the reference
+  executor parked tasks for the wrong reason.
+- The conformance suite no longer needs `jq`, which nothing declared and `doctor`
+  never checked; its evals use `python3` with the same predicates.
+- The `make check` CI gate runs on Ubuntu, macOS, and Windows with full history.
+
+### Changed
+
+- Install paths, package identity (`@pedrozotelli/task-spec`), plugin manifests,
+  marketplace ownership, and release tooling point to the fork. The Go module
+  path, `tasks/done/`, and `release/` keep their original values.
 
 ### Added
 
+- `tools/build-mesh-candidate-evidence.py` runs the TaskMesh suites on the host and
+  retains `release/<version>/` candidate evidence: what ran is `pass`, hosted CI,
+  signed provenance, and publication stay `not_run` until they execute.
+- `tests/test-state-relative-paths.sh` proves `_state.yaml` stays relative through a
+  symlink or junction.
 - TaskMesh reads an optional `TaskMeshRoster/v1` file (`tasks/.mesh/roster.json`
   or `.taskspec/mesh-roster.json`, override `TASKSPEC_MESH_ROSTER`) and selects
   a named model by effort band and optional kind. `--model` still wins.

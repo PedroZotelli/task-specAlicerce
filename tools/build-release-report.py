@@ -27,7 +27,7 @@ def timestamp() -> str:
 
 def write(path: pathlib.Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
 
 
 def git(*args: str) -> str:
@@ -133,6 +133,7 @@ def main() -> int:
     checksum_path.write_text(
         "".join(f"{row['digest'][7:]}  {row['name']}\n" for row in sorted(artifact_rows, key=lambda row: row["name"])),
         encoding="utf-8",
+        newline="\n",
     )
     report = {
         "contract": "TaskSpecReleaseReport/v1",

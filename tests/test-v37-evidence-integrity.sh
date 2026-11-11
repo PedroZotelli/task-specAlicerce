@@ -202,7 +202,7 @@ printf 'portable\n' > "$WORK/proof.txt"
 check "baseline discrimination audit" bash -c "cd '$WORK' && '$TS' eval-audit tasks/T-20260812-evidence-loop.md --baseline HEAD --report evidence/audit.json"
 check "repeated evaluation reports stable discrimination" bash -c "cd '$WORK' && '$TS' eval-audit tasks/T-20260812-evidence-loop.md --baseline HEAD --repeat 2 --report evidence/audit-repeat.json >/dev/null && python3 -c 'import json; d=json.load(open(\"evidence/audit-repeat.json\")); assert d[\"repeat\"] == 2 and not d[\"flake_detected\"] and d[\"result\"] == \"pass\"'"
 check "holdout descriptor sealed" "$TS" holdout seal "$WORK/evidence/holdout.json" --out "$WORK/evidence/holdout-descriptor.json"
-check "holdout rotation metadata is retained" bash -c "'$TS' holdout seal '$WORK/evidence/holdout.json' --expires-at 2999-01-01T00:00:00Z --rotation-id release-2026-08 --out '$WORK/evidence/holdout-rotated.json' >/dev/null && '$TS' holdout verify '$WORK/evidence/holdout-rotated.json' '$WORK/evidence/holdout.json' >/dev/null && python3 -c 'import json; d=json.load(open(\"$WORK/evidence/holdout-rotated.json\")); assert d[\"rotation_id\"] == \"release-2026-08\"'"
+check "holdout rotation metadata is retained" bash -c "'$TS' holdout seal '$WORK/evidence/holdout.json' --expires-at 2999-01-01T00:00:00Z --rotation-id release-2026-08 --out '$WORK/evidence/holdout-rotated.json' >/dev/null && '$TS' holdout verify '$WORK/evidence/holdout-rotated.json' '$WORK/evidence/holdout.json' >/dev/null && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d[\"rotation_id\"] == \"release-2026-08\"' '$WORK/evidence/holdout-rotated.json'"
 check "expired holdout requires rotation and reauthorization" bash -c "'$TS' holdout seal '$WORK/evidence/holdout.json' --expires-at 2000-01-01T00:00:00Z --rotation-id expired --out '$WORK/evidence/holdout-expired.json' >/dev/null && ! '$TS' holdout verify '$WORK/evidence/holdout-expired.json' '$WORK/evidence/holdout.json' >/dev/null 2>&1"
 cat > "$WORK/evidence/tampered-holdout.json" <<'JSON'
 {"contract":"HoldoutBundle/v1","task_id":"T-20260812-evidence-loop","checks":[{"id":"holdout_proof","argv":["bash","-lc","true"],"verifies":["B-1"]}]}
@@ -215,7 +215,7 @@ check "human receipt created" "$TS" receipt human --task-id T-20260812-evidence-
 check "identity receipt signed" "$TS" identity sign "$WORK/tasks/T-20260812-evidence-loop.md" --private-key "$WORK/evidence/identity/identity.ed25519.pem" --public-key "$WORK/evidence/identity/identity.ed25519.pub.pem" --signer reviewer --out "$WORK/evidence/identity-receipt.json"
 check "identity receipt verified" "$TS" identity verify "$WORK/evidence/identity-receipt.json" --public-key "$WORK/evidence/identity/identity.ed25519.pub.pem"
 cat > "$WORK/evidence/evaluator-trust.json" <<EOF
-{"contract":"EvaluatorTrust/v1","evaluators":[{"key_id":"$KEY_ID","public_key":"$WORK/evidence/identity/identity.ed25519.pub.pem","receipt_classes":["EvaluationReceipt/v2","EnvironmentReceipt/v2","GradedEvaluationReceipt/v2","HumanAcceptanceReceipt/v2"]}]}
+{"contract":"EvaluatorTrust/v1","evaluators":[{"key_id":"$KEY_ID","public_key":"identity/identity.ed25519.pub.pem","receipt_classes":["EvaluationReceipt/v2","EnvironmentReceipt/v2","GradedEvaluationReceipt/v2","HumanAcceptanceReceipt/v2"]}]}
 EOF
 for receipt in holdout environment graded human; do
   check "signed $receipt receipt" "$TS" receipt sign "$WORK/evidence/$receipt-receipt.json" --private-key "$WORK/evidence/identity/identity.ed25519.pem" --public-key "$WORK/evidence/identity/identity.ed25519.pub.pem" --out "$WORK/evidence/$receipt-receipt-signed.json"
@@ -253,7 +253,7 @@ value["engines"][0].update({"enabled": True, "argv": ["bash", "-lc", "printf 'po
 json.dump(value, open(sys.argv[2], "w", encoding="utf-8"))
 PY
 check "enabled engine runs in a detached worktree" "$TS" evidence run "$WORK/evidence/engine-matrix-enabled.json" --handoff "$WORK/evidence/handoff.json" --out-dir "$WORK/evidence/matrix-enabled"
-check "isolated engine receipt records a real attempt" bash -c "python3 -c 'import json; d=json.load(open(\"$WORK/evidence/matrix-enabled/receipts/openai.json\")); assert d[\"terminal_outcome\"] == \"pass\" and d[\"attempts\"] == 1 and \"isolation=detached-git-worktree\" in d[\"deviations\"]'"
+check "isolated engine receipt records a real attempt" bash -c "python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d[\"terminal_outcome\"] == \"pass\" and d[\"attempts\"] == 1 and \"isolation=detached-git-worktree\" in d[\"deviations\"]' '$WORK/evidence/matrix-enabled/receipts/openai.json'"
 check "isolated engine change is captured outside the source workspace" bash -c "grep -q 'proof.txt' '$WORK/evidence/matrix-enabled/raw/openai-status.txt' && grep -q '\"path\": \"proof.txt\"' '$WORK/evidence/matrix-enabled/raw/openai-files.json' && test \"\$(cat '$WORK/proof.txt')\" = portable"
 
 check "acceptance blocks when evidence is omitted" bash -c "cd '$WORK' && ! '$TS' accept --no-blast-radius tasks/T-20260812-evidence-loop.md >/dev/null 2>&1"

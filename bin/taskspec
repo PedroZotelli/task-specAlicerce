@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Canonical Task-Spec CLI. Stable commands; additive changes preserve exit codes.
 set -euo pipefail
+# UTF-8 for every Python child: Windows consoles default to a legacy code page.
+: "${PYTHONUTF8:=1}"
+export PYTHONUTF8
 
 _ts_source="$0"
 while [[ -h "$_ts_source" ]]; do

@@ -77,10 +77,12 @@ PY
 host_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 host_arch="$(uname -m)"
 case "$host_arch" in x86_64|amd64) host_arch=amd64 ;; arm64|aarch64) host_arch=arm64 ;; esac
+EXE=""
+case "$host_os" in mingw*|msys*|cygwin*) host_os=windows; EXE=".exe" ;; esac
 python3 "$ROOT/tools/build-mesh-release.py" --out-dir "$WORK/one/mesh" --target "$host_os/$host_arch" >/dev/null
 python3 "$ROOT/tools/build-mesh-release.py" --out-dir "$WORK/two/mesh" --target "$host_os/$host_arch" >/dev/null
-cmp -s "$WORK/one/mesh/taskspec-meshd-$host_os-$host_arch" "$WORK/two/mesh/taskspec-meshd-$host_os-$host_arch"
-cmp -s "$WORK/one/mesh/taskspec-meshd-$host_os-$host_arch.sha256" "$WORK/two/mesh/taskspec-meshd-$host_os-$host_arch.sha256"
+cmp -s "$WORK/one/mesh/taskspec-meshd-$host_os-$host_arch$EXE" "$WORK/two/mesh/taskspec-meshd-$host_os-$host_arch$EXE"
+cmp -s "$WORK/one/mesh/taskspec-meshd-$host_os-$host_arch$EXE.sha256" "$WORK/two/mesh/taskspec-meshd-$host_os-$host_arch$EXE.sha256"
 
 python3 - "$ROOT/.github/workflows/release-install-smoke.yml" <<'PY'
 import pathlib, sys

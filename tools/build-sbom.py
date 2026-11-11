@@ -73,7 +73,7 @@ def main() -> int:
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
         "name": f"task-spec-{version}",
-        "documentNamespace": f"https://github.com/luanmorenommaciel/task-spec/releases/tag/v{version}/sbom/{archive_digest}",
+        "documentNamespace": f"https://github.com/PedroZotelli/task-specLuan/releases/tag/v{version}/sbom/{archive_digest}",
         "creationInfo": {
             "created": created(args.epoch),
             "creators": ["Tool: task-spec-build-sbom/1"],
@@ -84,7 +84,7 @@ def main() -> int:
             "name": "task-spec",
             "SPDXID": "SPDXRef-Package-Task-Spec",
             "versionInfo": version,
-            "downloadLocation": f"https://github.com/luanmorenommaciel/task-spec/releases/download/v{version}/{archive.name}",
+            "downloadLocation": f"https://github.com/PedroZotelli/task-specLuan/releases/download/v{version}/{archive.name}",
             "filesAnalyzed": True,
             "packageVerificationCode": {"packageVerificationCodeValue": verification},
             "checksums": [{"algorithm": "SHA256", "checksumValue": archive_digest}],
@@ -94,7 +94,7 @@ def main() -> int:
             "externalRefs": [{
                 "referenceCategory": "PACKAGE-MANAGER",
                 "referenceType": "purl",
-                "referenceLocator": f"pkg:github/luanmorenommaciel/task-spec@v{version}",
+                "referenceLocator": f"pkg:github/PedroZotelli/task-specLuan@v{version}",
             }],
         }],
         "files": files,
@@ -109,7 +109,7 @@ def main() -> int:
     }
     out = pathlib.Path(args.out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     print(f"SBOM=READY path={out} files={len(files)} archive_sha256={archive_digest}")
     return 0
 

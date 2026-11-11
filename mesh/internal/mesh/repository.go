@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -56,7 +55,7 @@ func ResolveRepository(input string) (Repository, error) {
 	stateDir := filepath.Join(root, ".taskspec", "mesh")
 	runtimeBase := os.Getenv("XDG_RUNTIME_DIR")
 	if runtimeBase == "" {
-		runtimeBase = filepath.Join(os.TempDir(), "taskspec-"+strconv.Itoa(os.Getuid()))
+		runtimeBase = defaultRuntimeBase()
 	}
 	runtimeDir := filepath.Join(runtimeBase, "taskmesh")
 	digest := sha256.Sum256([]byte(root))

@@ -29,7 +29,8 @@ _hide_shellcheck_path() {
       mkdir -p "$shadow"
       for exe in "$dir"/*; do
         base="${exe##*/}"
-        [[ "$base" == "shellcheck" ]] && continue
+        # Windows names the binary shellcheck.exe.
+        [[ "$base" == "shellcheck" || "$base" == "shellcheck.exe" ]] && continue
         [[ -x "$exe" ]] || continue
         ln -s "$exe" "$shadow/$base"
       done

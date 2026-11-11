@@ -13,6 +13,8 @@ from typing import NoReturn
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import resolve_command  # noqa: E402
 VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 API = "TaskMeshAPI/v1alpha1"
 
@@ -83,7 +85,8 @@ def helper_path() -> pathlib.Path | None:
     candidates = []
     if explicit:
         candidates.append(pathlib.Path(explicit).expanduser())
-    candidates.extend((ROOT / "libexec" / "taskspec-meshd", ROOT / "bin" / "taskspec-meshd"))
+    names = ("taskspec-meshd.exe", "taskspec-meshd") if sys.platform == "win32" else ("taskspec-meshd",)
+    candidates.extend(ROOT / folder / name for folder in ("libexec", "bin") for name in names)
     on_path = shutil.which("taskspec-meshd")
     if on_path:
         candidates.append(pathlib.Path(on_path))
@@ -108,7 +111,7 @@ def repository_root() -> pathlib.Path:
 
 def negotiate(helper: pathlib.Path) -> dict:
     result = subprocess.run(
-        [str(helper), "--version-json"],
+        resolve_command([str(helper), "--version-json"]),
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -168,12 +171,15 @@ def main(argv: list[str]) -> int:
     negotiate(helper)
     if command == "mcp":
         os.environ["TASKSPEC_MESH_HELPER"] = str(helper)
-        os.execv(sys.executable, [sys.executable, str(ROOT / "src" / "meshctl" / "mcp_server.py")])
+        server = [sys.executable, str(ROOT / "src" / "meshctl" / "mcp_server.py")]
+        if sys.platform == "win32":  # execv there spawns a new process and drops the stdio pipe
+            return subprocess.run(server, check=False).returncode
+        os.execv(sys.executable, server)
     invocation = [str(helper), "--repository", str(repository_root())]
     if json_mode():
         invocation.append("--json")
     invocation.extend(argv)
-    return subprocess.run(invocation, check=False).returncode
+    return subprocess.run(resolve_command(invocation), check=False).returncode
 
 
 if __name__ == "__main__":

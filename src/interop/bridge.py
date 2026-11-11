@@ -131,7 +131,7 @@ def main() -> int:
         if args.command == "export":
             value = export(load(pathlib.Path(args.handoff)), args.protocol, args.protocol_version)
             rendered = json.dumps(value, indent=2, ensure_ascii=False) + "\n"
-            if args.out: pathlib.Path(args.out).write_text(rendered, encoding="utf-8")
+            if args.out: pathlib.Path(args.out).write_text(rendered, encoding="utf-8", newline="\n")
             else: print(rendered, end="")
         else:
             value = json.loads(pathlib.Path(args.artifact).read_text(encoding="utf-8")); errors = validate(value)

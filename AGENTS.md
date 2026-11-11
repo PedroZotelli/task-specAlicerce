@@ -33,6 +33,8 @@ extracted from `converge/skills/task-spec` at v3.3.0 and now stands alone.
 | `.claude-plugin/` | marketplace source of truth for the Claude plugin |
 | `.github/` | workflows and dependabot config |
 | `CONTRIBUTING.md`, `SECURITY.md` | human entry points; agents still follow this file |
+| `NOTICE` | credits the original authors of this fork (MIT) |
+| `.gitattributes` | pins LF line endings, so hashes and scripts match on every OS |
 
 Frozen artifacts under `release/<version>/`, `.taskspec/acceptance/`, and
 `tasks/done/` describe what actually shipped. Never rewrite them to match a

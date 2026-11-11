@@ -141,7 +141,7 @@ func (daemon *Daemon) Serve(ctx context.Context) error {
 		listener.Close()
 		os.Remove(daemon.repository.Socket)
 	}()
-	if err := os.Chmod(daemon.repository.Socket, 0o600); err != nil {
+	if err := RestrictSocket(daemon.repository.Socket); err != nil {
 		return err
 	}
 	server := &http.Server{Handler: daemon.Handler(), ReadHeaderTimeout: 5 * time.Second}

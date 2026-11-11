@@ -104,10 +104,10 @@ run_fixtures_suite() {
     pass "$fixture (exit $rc, matched '$expected_match')"
   done < <(python3 -c "
 import json, sys
-o = json.load(open('$oracle'))
+o = json.load(open(sys.argv[1]))
 for f in o['fixtures']:
     print(f'{f[\"fixture\"]}\t{f[\"expected_exit\"]}\t{f[\"expected_match\"]}\t{f[\"description\"]}')
-")
+" "$oracle")
 }
 
 # ---------------------------------------------------------------------------

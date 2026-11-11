@@ -23,7 +23,14 @@ for name in ("taskmesh_api", "taskmesh_run", "executor_capability", "dispatch_de
 '
 
 # Hide a globally installed helper so this case is MESH_NOT_INSTALLED, not a live doctor.
-ISOLATED_PATH="$(python3 -c 'import os,shutil,sys; p=os.environ["PATH"].split(":"); d=os.path.dirname(shutil.which("taskspec-meshd") or ""); print(":".join(x for x in p if x and x!=d))')"
+# In shell, not Python: native Windows Python sees PATH in its own C:\...;... form.
+HELPER_DIR=""
+if HELPER_PATH="$(command -v taskspec-meshd 2>/dev/null)"; then HELPER_DIR="$(dirname "$HELPER_PATH")"; fi
+ISOLATED_PATH=""
+IFS=: read -r -a PATH_ENTRIES <<< "$PATH"
+for entry in "${PATH_ENTRIES[@]}"; do
+  [[ -n "$entry" && "$entry" != "$HELPER_DIR" ]] && ISOLATED_PATH="${ISOLATED_PATH:+$ISOLATED_PATH:}$entry"
+done
 set +e
 PATH="$ISOLATED_PATH" TASKSPEC_MESH_HELPER="$TMP/missing" bash "$CLI" mesh doctor >"$TMP/missing.out" 2>"$TMP/missing.err"
 missing_rc=$?

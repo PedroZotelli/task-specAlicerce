@@ -236,7 +236,7 @@ def main() -> int:
         "heartbeat_at": now, "state": "leased",
     }
     validate_instance({
-        "contract": "TaskMeshAPI/v1alpha1", "product_version": "3.9.0",
+        "contract": "TaskMeshAPI/v1alpha1", "product_version": "3.10.0",
         "api_version": "v1alpha1", "capabilities": ["events", "leases"],
     }, "taskmesh-api.schema.json")
     validate_instance(mesh_run, "taskmesh-run.schema.json")

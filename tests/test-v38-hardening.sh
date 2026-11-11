@@ -100,7 +100,7 @@ TASKSPEC_BACKLOG_DIR="$R/cvg/tasks" TASKSPEC_WORKSPACE_ROOT="$R" \
   "$TS" handoff "$R/cvg/tasks/T-20260813-nested-backlog.md" --backend codex \
     --attempt-id 99999999-9999-4999-8999-999999999999 --out "$H" >/dev/null
 must "explicit workspace supports a nested custom backlog" bash -c \
-  "python3 -c 'import json,pathlib; d=json.load(open(\"$H\")); root=str(pathlib.Path(\"$R\").resolve()); assert d[\"workspace\"]==root and d[\"source\"][\"workspace\"]==root' && TASKSPEC_SIGNING_KEY=hardening-key TASKSPEC_BACKLOG_DIR='$R/cvg/tasks' TASKSPEC_WORKSPACE_ROOT='$R' '$TS' accept --handoff '$H' '$R/cvg/tasks/T-20260813-nested-backlog.md' | grep -q '^ACCEPTED=1$'"
+  "python3 -c 'import json,pathlib,sys; d=json.load(open(sys.argv[1])); root=str(pathlib.Path(sys.argv[2]).resolve()); assert d[\"workspace\"]==root and d[\"source\"][\"workspace\"]==root' '$H' '$R' &&TASKSPEC_SIGNING_KEY=hardening-key TASKSPEC_BACKLOG_DIR='$R/cvg/tasks' TASKSPEC_WORKSPACE_ROOT='$R' '$TS' accept --handoff '$H' '$R/cvg/tasks/T-20260813-nested-backlog.md' | grep -q '^ACCEPTED=1$'"
 
 # Attempt-bound receipts, ordering, replay, and supervised compatibility.
 R="$WORK/receipts"; repo "$R"; spec "$R" T-20260813-receipts 4; gate "$R" T-20260813-receipts

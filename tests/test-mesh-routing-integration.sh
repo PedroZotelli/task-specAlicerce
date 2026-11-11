@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Windows: the TaskMesh daemon is a native process that Git Bash's kill cannot
+# signal, and a live daemon keeps its database open, so cleanup could not remove it.
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    kill() {
+      local pid status=0
+      for pid in "$@"; do
+        [[ "$pid" == -* ]] && continue
+        builtin kill "$pid" 2>/dev/null || taskkill //F //T //PID "$pid" >/dev/null 2>&1 || status=1
+      done
+      return "$status"
+    }
+    ;;
+esac
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLI="$ROOT/bin/taskspec"
 TMP="$(mktemp -d -t taskspec-mesh-routing-XXXXXX)"
 REPO="$TMP/repository"
-HELPER="$TMP/taskspec-meshd"
+HELPER="$TMP/taskspec-meshd$(go env GOEXE)"  # .exe on Windows
 DAEMON_PID=""
 cleanup() {
   if [[ -n "$DAEMON_PID" ]]; then kill "$DAEMON_PID" >/dev/null 2>&1 || true; fi
@@ -110,7 +125,7 @@ assert attempt["branch"].startswith("taskmesh/")
 assert pathlib.Path(attempt["workspace"]).is_dir()
 lease = attempt["lease"]
 run = value["run"]
-pathlib.Path(sys.argv[2]).write_text("\n".join([lease["attempt_id"], str(lease["fencing_token"]), lease["task_id"], lease["task_revision_digest"], attempt["workspace"], run["run_id"], run["integration_branch"], run["target"]["commit"]]) + "\n")
+pathlib.Path(sys.argv[2]).write_text("\n".join([lease["attempt_id"], str(lease["fencing_token"]), lease["task_id"], lease["task_revision_digest"], attempt["workspace"], run["run_id"], run["integration_branch"], run["target"]["commit"]]) + "\n", newline="\n")
 PY
 
 write_record() {
@@ -130,7 +145,7 @@ record = {
   "receipts": [], "acceptance_tier": 1, "accepted_by": "routing-test",
   "accepted_at": "2026-08-16T19:00:00Z"
 }
-pathlib.Path(output).write_text(json.dumps(record, indent=2) + "\n")
+pathlib.Path(output).write_text(json.dumps(record, indent=2) + "\n", newline="\n")
 PY
   TASKSPEC_HOME="$ROOT" "$HELPER" --repository "$REPO" --json record-acceptance --attempt-id "$attempt" --fencing-token "$token" --record "$output" >/dev/null
 }
@@ -158,7 +173,7 @@ python3 - "$REPO/tasks/T-20260816-alpha.md" <<'PY'
 import pathlib, sys
 path = pathlib.Path(sys.argv[1])
 text = path.read_text().replace("status: ready", "status: done", 1)
-path.write_text(text)
+path.write_text(text, newline="\n")
 PY
 
 # Two write-disjoint authorized tasks are deliberately made to conflict at Git integration.
@@ -174,7 +189,7 @@ rows = []
 for attempt in value["attempts"]:
     lease = attempt["lease"]
     rows.append("\t".join([lease["attempt_id"], str(lease["fencing_token"]), lease["task_id"], lease["task_revision_digest"], attempt["workspace"], value["run"]["target"]["commit"]]))
-pathlib.Path(sys.argv[2]).write_text("\n".join(rows) + "\n")
+pathlib.Path(sys.argv[2]).write_text("\n".join(rows) + "\n", newline="\n")
 PY
 
 index=0
@@ -209,7 +224,7 @@ import json, pathlib, sys
 value = json.loads(pathlib.Path(sys.argv[1]).read_text())["data"]["data"]
 attempt = value["attempts"][0]
 lease = attempt["lease"]
-pathlib.Path(sys.argv[2]).write_text("\n".join([lease["attempt_id"], str(lease["fencing_token"]), lease["task_id"], lease["task_revision_digest"], attempt["workspace"], value["run"]["target"]["commit"]]) + "\n")
+pathlib.Path(sys.argv[2]).write_text("\n".join([lease["attempt_id"], str(lease["fencing_token"]), lease["task_id"], lease["task_revision_digest"], attempt["workspace"], value["run"]["target"]["commit"]]) + "\n", newline="\n")
 PY
 DELTA_ATTEMPT="$(sed -n '1p' "$TMP/delta.env")"
 DELTA_TOKEN="$(sed -n '2p' "$TMP/delta.env")"

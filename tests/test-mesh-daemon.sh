@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Windows: the TaskMesh daemon is a native process that Git Bash's kill cannot
+# signal, and a live daemon keeps its database open, so cleanup could not remove it.
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    kill() {
+      local pid status=0
+      for pid in "$@"; do
+        [[ "$pid" == -* ]] && continue
+        builtin kill "$pid" 2>/dev/null || taskkill //F //T //PID "$pid" >/dev/null 2>&1 || status=1
+      done
+      return "$status"
+    }
+    ;;
+esac
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLI="$ROOT/bin/taskspec"
 TMP="$(mktemp -d -t taskspec-mesh-daemon-XXXXXX)"
 REPO="$TMP/repository"
-HELPER="$TMP/taskspec-meshd"
+HELPER="$TMP/taskspec-meshd$(go env GOEXE)"  # .exe on Windows
 LAST_PID=""
 cleanup() {
   if [[ -n "$LAST_PID" ]]; then kill "$LAST_PID" >/dev/null 2>&1 || true; fi
@@ -37,9 +52,10 @@ assert first["data"]["code"] == "MESH_INIT_OK"
 data = doctor["data"]["data"]
 assert data["journal_mode"] == "wal"
 assert data["event_count"] == 1
-assert stat.S_IMODE(pathlib.Path(data["socket"]).stat().st_mode) == 0o600
-assert stat.S_IMODE(pathlib.Path(data["socket"]).parent.stat().st_mode) == 0o700
-assert stat.S_IMODE(pathlib.Path(data["database"]).parent.stat().st_mode) == 0o700
+if sys.platform != "win32":  # POSIX mode bits; Windows guards these by the per-user directory
+    assert stat.S_IMODE(pathlib.Path(data["socket"]).stat().st_mode) == 0o600
+    assert stat.S_IMODE(pathlib.Path(data["socket"]).parent.stat().st_mode) == 0o700
+    assert stat.S_IMODE(pathlib.Path(data["database"]).parent.stat().st_mode) == 0o700
 pathlib.Path(sys.argv[3] + ".pid").write_text(str(data["daemon_pid"]))
 pathlib.Path(sys.argv[3] + ".socket").write_text(data["socket"])
 PY

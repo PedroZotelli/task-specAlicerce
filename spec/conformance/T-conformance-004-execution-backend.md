@@ -59,15 +59,13 @@ eval_1() {
 }
 
 eval_2() {
-  jq -r 'select(.backend_used != null) | .backend_used' \
-       spec/conformance/_workdir/c004_metrics.jsonl | grep -q 'codex' \
-  || jq -e 'select(.backend_override.reason != null and .backend_override.reason != "")' \
-       spec/conformance/_workdir/c004_metrics.jsonl >/dev/null
+  python3 -c 'import json,sys; rows=[json.loads(l) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]; sys.exit(0 if any("codex" in str(r.get("backend_used") or "") or ((r.get("backend_override") or {}).get("reason") or "") for r in rows) else 1)' \
+       spec/conformance/_workdir/c004_metrics.jsonl
 }
 
 eval_3() {
-  jq -r 'select(.backend_override != null) | .backend_override.from' \
-       spec/conformance/_workdir/c004_metrics.jsonl | grep -qx 'codex' \
+  python3 -c 'import json,sys; rows=[json.loads(l) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]; sys.exit(0 if any((r.get("backend_override") or {}).get("from") == "codex" for r in rows) else 1)' \
+       spec/conformance/_workdir/c004_metrics.jsonl \
   || true
 }
 ```
@@ -103,7 +101,7 @@ agent_contract:
   read: [intent, contract, guardrails, operations]
   produce:
     - tests
-  required_tools: [bash, jq]
+  required_tools: [bash, python3]
   timeout_minutes: 10
   sandbox_type: host
   output_artifacts:

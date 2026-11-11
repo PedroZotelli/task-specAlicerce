@@ -58,7 +58,7 @@ def main() -> int:
             compressed.write(tar_bytes.getvalue())
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     checksum = archive.with_name(archive.name + ".sha256")
-    checksum.write_text(f"{digest}  {archive.name}\n", encoding="utf-8")
+    checksum.write_text(f"{digest}  {archive.name}\n", encoding="utf-8", newline="\n")
     print(f"RELEASE_ARCHIVE={archive}")
     print(f"RELEASE_SHA256={digest}")
     return 0

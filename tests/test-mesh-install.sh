@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Windows: the TaskMesh daemon is a native process that Git Bash's kill cannot
+# signal, and a live daemon keeps its database open, so cleanup could not remove it.
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    kill() {
+      local pid status=0
+      for pid in "$@"; do
+        [[ "$pid" == -* ]] && continue
+        builtin kill "$pid" 2>/dev/null || taskkill //F //T //PID "$pid" >/dev/null 2>&1 || status=1
+      done
+      return "$status"
+    }
+    ;;
+esac
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 WORK="$(mktemp -d -t taskspec-mesh-install-XXXXXX)"
@@ -14,7 +29,16 @@ trap cleanup EXIT
 host_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 host_arch="$(uname -m)"
 case "$host_arch" in x86_64|amd64) host_arch=amd64 ;; arm64|aarch64) host_arch=arm64 ;; esac
-asset="taskspec-meshd-$host_os-$host_arch"
+EXE=""
+case "$host_os" in mingw*|msys*|cygwin*) host_os=windows; EXE=".exe" ;; esac
+asset="taskspec-meshd-$host_os-$host_arch$EXE"
+# Real symlinks on Windows need Developer Mode; without them --symlink must refuse.
+native_symlinks() {
+  [[ "$host_os" == windows ]] || return 0
+  local probe; probe="$(mktemp -d -t taskspec-mesh-probe-XXXXXX)"
+  MSYS=winsymlinks:nativestrict ln -s "$probe" "$probe/link" 2>/dev/null && [[ -L "$probe/link" ]]
+  local rc=$?; rm -rf "$probe"; return $rc
+}
 mkdir -p "$WORK/assets" "$WORK/core-project" "$WORK/mesh-project" "$WORK/symlink-project" "$WORK/npm-project" "$WORK/npm-bin"
 python3 "$ROOT/tools/build-mesh-release.py" --out-dir "$WORK/assets" --target "$host_os/$host_arch" >/dev/null
 
@@ -22,8 +46,15 @@ python3 "$ROOT/tools/build-mesh-release.py" --out-dir "$WORK/assets" --target "$
 HOME="$WORK/core-home" TASKSPEC_INSTALL_ROOT="$WORK/core-install" \
   bash "$ROOT/install.sh" --target "$WORK/core-project" --bin-dir "$WORK/core-bin" >"$WORK/core.log"
 grep -q '^INSTALL=OK$' "$WORK/core.log"
-[[ ! -e "$WORK/core-bin/taskspec-meshd" ]]
-ISOLATED_PATH="$(python3 -c 'import os,shutil; p=os.environ["PATH"].split(":"); d=os.path.dirname(shutil.which("taskspec-meshd") or ""); print(":".join(x for x in p if x and x!=d))')"
+[[ ! -e "$WORK/core-bin/taskspec-meshd$EXE" ]]
+# In shell, not Python: native Windows Python sees PATH in its own C:\...;... form.
+HELPER_DIR=""
+if HELPER_PATH="$(command -v taskspec-meshd 2>/dev/null)"; then HELPER_DIR="$(dirname "$HELPER_PATH")"; fi
+ISOLATED_PATH=""
+IFS=: read -r -a PATH_ENTRIES <<< "$PATH"
+for entry in "${PATH_ENTRIES[@]}"; do
+  [[ -n "$entry" && "$entry" != "$HELPER_DIR" ]] && ISOLATED_PATH="${ISOLATED_PATH:+$ISOLATED_PATH:}$entry"
+done
 set +e
 (cd "$WORK/core-project" && PATH="$ISOLATED_PATH" "$WORK/core-bin/taskspec" mesh doctor >"$WORK/core-mesh.out" 2>"$WORK/core-mesh.err")
 core_rc=$?
@@ -36,9 +67,9 @@ HOME="$WORK/mesh-home" TASKSPEC_INSTALL_ROOT="$WORK/mesh-install" TASKSPEC_MESH_
   bash "$ROOT/install.sh" --target "$WORK/mesh-project" --bin-dir "$WORK/mesh-bin" --with-mesh >"$WORK/mesh.log"
 grep -q '^INSTALL=OK$' "$WORK/mesh.log"
 grep -q '^mesh:' "$WORK/mesh.log"
-[[ -x "$WORK/mesh-install/$VERSION/libexec/taskspec-meshd" ]]
-[[ -x "$WORK/mesh-bin/taskspec-meshd" ]]
-"$WORK/mesh-bin/taskspec-meshd" --version-json | python3 -c \
+[[ -x "$WORK/mesh-install/$VERSION/libexec/taskspec-meshd$EXE" ]]
+[[ -x "$WORK/mesh-bin/taskspec-meshd$EXE" ]]
+"$WORK/mesh-bin/taskspec-meshd$EXE" --version-json | python3 -c \
   'import json,sys; v=json.load(sys.stdin); assert v["contract"] == "TaskMeshAPI/v1alpha1" and v["product_version"] == sys.argv[1]' "$VERSION"
 git init -q -b main "$WORK/mesh-project"
 git -C "$WORK/mesh-project" config user.name taskspec-test
@@ -54,6 +85,7 @@ print(json.loads(pathlib.Path(sys.argv[1]).read_text())["data"]["data"]["daemon_
 PY
 )"
 
+if native_symlinks; then
 # Checkout symlink mode keeps the source tree clean and exposes the helper on PATH.
 before="$(git -C "$ROOT" status --porcelain)"
 HOME="$WORK/symlink-home" TASKSPEC_INSTALL_ROOT="$WORK/symlink-install" TASKSPEC_MESH_ASSET_DIR="$WORK/assets" \
@@ -61,7 +93,7 @@ HOME="$WORK/symlink-home" TASKSPEC_INSTALL_ROOT="$WORK/symlink-install" TASKSPEC
 after="$(git -C "$ROOT" status --porcelain)"
 [[ "$before" == "$after" ]]
 [[ -L "$WORK/symlink-install/$VERSION" ]]
-[[ -x "$WORK/symlink-bin/taskspec-meshd" ]]
+[[ -x "$WORK/symlink-bin/taskspec-meshd$EXE" ]]
 
 # The npm package already owns BIN_DIR/taskspec. The harness installer keeps
 # that exact package link while adding skills, the pinned engine, and TaskMesh.
@@ -72,7 +104,17 @@ grep -q '^kept: package CLI ' "$WORK/npm.log"
 grep -q '^INSTALL=OK$' "$WORK/npm.log"
 [[ -L "$WORK/npm-bin/taskspec" ]]
 [[ "$(readlink "$WORK/npm-bin/taskspec")" == "$ROOT/bin/taskspec" ]]
-[[ -x "$WORK/npm-bin/taskspec-meshd" ]]
+[[ -x "$WORK/npm-bin/taskspec-meshd$EXE" ]]
+else
+  set +e
+  HOME="$WORK/symlink-home" TASKSPEC_INSTALL_ROOT="$WORK/symlink-install" TASKSPEC_MESH_ASSET_DIR="$WORK/assets" \
+    bash "$ROOT/install.sh" --target "$WORK/symlink-project" --bin-dir "$WORK/symlink-bin" --symlink --with-mesh >"$WORK/symlink.log" 2>&1
+  symlink_rc=$?
+  set -e
+  [[ "$symlink_rc" -eq 2 ]]
+  grep -q 'needs Windows symlinks' "$WORK/symlink.log"
+  echo "skipped: npm package-link case needs Windows symlinks (Developer Mode)"
+fi
 
 # Missing checksum, changed bytes, and a version-mismatched helper all fail closed.
 mkdir -p "$WORK/bad-missing" "$WORK/bad-tamper" "$WORK/bad-version"

@@ -15,6 +15,9 @@ import uuid
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import bash_executable  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "src" / "lib"))
 sys.path.insert(0, str(ROOT / "src" / "security"))
 sys.path.insert(0, str(ROOT / "src" / "graph"))
 from taskspec_data import DataError, frontmatter, parse_yaml_subset, sensitive_key_paths, sha256_file  # noqa: E402
@@ -72,7 +75,7 @@ def write_non_clobbering(path: pathlib.Path, value: str, force: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     try:
-        temporary.write_text(value, encoding="utf-8")
+        temporary.write_text(value, encoding="utf-8", newline="\n")
         temporary.replace(path)
     finally:
         if temporary.exists():
@@ -117,7 +120,7 @@ def main() -> int:
 
     validator = ROOT / "src" / "gate" / "validate-task-spec.sh"
     checked = subprocess.run(
-        ["bash", str(validator), "--no-state", str(spec)],
+        [bash_executable(), str(validator), "--no-state", str(spec)],
         cwd=str(workspace_for(spec)), text=True, capture_output=True, check=False,
     )
     validation_output = checked.stdout + checked.stderr
