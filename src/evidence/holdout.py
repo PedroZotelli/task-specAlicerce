@@ -16,6 +16,8 @@ from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src" / "evidence"))
+sys.path.insert(0, str(ROOT / "src" / "lib"))
+from portable_exec import resolve_command  # noqa: E402
 from receipts import receipt_subject  # noqa: E402
 
 
@@ -140,7 +142,7 @@ def run_bundle(bundle: dict[str, Any], workspace: pathlib.Path) -> tuple[bool, l
         started = datetime.now(timezone.utc)
         try:
             completed = subprocess.run(
-                check["argv"],
+                resolve_command(check["argv"]),
                 cwd=workspace,
                 text=True,
                 capture_output=True,

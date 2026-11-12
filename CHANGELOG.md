@@ -19,6 +19,17 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 - The repository is now `PedroZotelli/task-specAlicerce`, a standalone repository (no longer in the original's fork network). Links, install commands and manifests use the new name; GitHub redirects the old one.
 
+### Fixed
+
+- Holdout checks whose `argv` starts with `bash` now run under Git Bash on
+  Windows. The holdout runner started the program as given, and a bare `bash`
+  from native Windows Python resolves to the WSL launcher in System32.
+  `resolve_command` now maps a bare `bash`/`sh` to Git Bash, and the runner
+  uses it.
+- Two tests (`test-extractor-fuzz.sh`, `test-mesh-cockpit.sh`) start the
+  running bash by its path for the same reason, and stop a timed-out process
+  tree with `taskkill` where process groups do not exist.
+
 ## [3.10.0] — 2026-11-11
 
 First release of Pedro Zotelli's own line of this fork,

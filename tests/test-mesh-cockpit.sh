@@ -139,10 +139,12 @@ grep -q 'SUPERVISION_REQUIRED' "$TMP/human-watch.txt"
   cd "$REPO"
   TASKSPEC_MESH_HELPER="$HELPER" TASKSPEC_MESH_ADAPTER_DIR="$ADAPTER_DIR" \
   TASKMESH_FAKE_WRITE_PATH=cockpit.txt TASKSPEC_MESH_ADAPTER_TIMEOUT_SEC=60 \
-  python3 - "$CLI" "$RUN_ID" "$ATTEMPT" "$TMP/mcp-result.json" <<'PY'
+  python3 - "$BASH" "$CLI" "$RUN_ID" "$ATTEMPT" "$TMP/mcp-result.json" <<'PY'
 import json, os, pathlib, subprocess, sys
-cli, run_id, attempt_id, output = sys.argv[1:]
-process = subprocess.Popen(["bash", cli, "mesh", "mcp"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+# The running bash comes in as an argument: a bare "bash" from native Windows
+# Python resolves to the WSL launcher in System32.
+bash, cli, run_id, attempt_id, output = sys.argv[1:]
+process = subprocess.Popen([bash, cli, "mesh", "mcp"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 meta = {
   "io.modelcontextprotocol/protocolVersion": "2026-07-28",
   "io.modelcontextprotocol/clientInfo": {"name": "grok-cockpit", "version": "test"},

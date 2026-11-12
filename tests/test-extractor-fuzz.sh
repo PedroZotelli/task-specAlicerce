@@ -45,6 +45,9 @@ fail() { echo "  ✗ $1" >&2; FAIL=$((FAIL + 1)); }
 # group after N seconds. Returns 137 on timeout, otherwise the command's code.
 run_to() {
   local t="$1"; shift
+  # "$BASH" is this shell's full path: a bare "bash" started from a python.org
+  # Python on Windows resolves to System32's WSL launcher, not Git Bash.
+  [[ "${1:-}" == bash ]] && set -- "$BASH" "${@:2}"
   python3 - "$t" "$@" <<'PY'
 import os
 import signal
@@ -63,7 +66,10 @@ process = subprocess.Popen(
 try:
     stdout, stderr = process.communicate(timeout=timeout_seconds)
 except subprocess.TimeoutExpired:
-    os.killpg(process.pid, signal.SIGKILL)
+    if hasattr(os, "killpg"):
+        os.killpg(process.pid, signal.SIGKILL)
+    else:  # Windows: no process groups by signal; stop the tree
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], capture_output=True)
     stdout, stderr = process.communicate()
     sys.stdout.buffer.write(stdout)
     sys.stderr.buffer.write(stderr)
