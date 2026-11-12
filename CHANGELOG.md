@@ -29,6 +29,10 @@ The canonical version lives in `./VERSION` and is mirrored by
 - Two tests (`test-extractor-fuzz.sh`, `test-mesh-cockpit.sh`) start the
   running bash by its path for the same reason, and stop a timed-out process
   tree with `taskkill` where process groups do not exist.
+- On Windows with native symlinks, `install.sh` keeps an npm package link to
+  the exact CLI (`-ef`, the same file) whatever path form `readlink` returns.
+  `test-mesh-install.sh` now creates that link as a native symlink; Git Bash's
+  plain `ln -s` makes a copy, which the installer rightly refused to clobber.
 
 ## [3.10.0] — 2026-11-11
 
