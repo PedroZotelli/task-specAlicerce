@@ -35,6 +35,10 @@ The canonical version lives in `./VERSION` and is mirrored by
   plain `ln -s` makes a copy, which the installer rightly refused to clobber.
 - Four tests fall back to `sha256sum` when Perl's `shasum` is missing, as on
   the hosted Windows runner's Git Bash (the installer already did).
+- TaskMesh's autonomous sandbox only accepts a Docker engine running Linux
+  containers (`docker info` OSType `linux`). A Windows-containers engine, as on
+  the hosted Windows runner, answered `info` and then failed obscurely; it is
+  now reported as unavailable, and `test-mesh-isolation.sh` skips the same way.
 
 ## [3.10.0] — 2026-11-11
 

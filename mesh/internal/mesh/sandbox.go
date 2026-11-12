@@ -109,6 +109,14 @@ func containerRuntime() (string, string, error) {
 		if err := command.Run(); err != nil {
 			continue
 		}
+		// The worker image is a Linux image. A Docker engine in Windows-containers
+		// mode answers `info` but cannot run it, so it does not count.
+		if runtime == "docker" {
+			osType, err := exec.Command(path, "info", "--format", "{{.OSType}}").Output()
+			if err != nil || strings.TrimSpace(string(osType)) != "linux" {
+				continue
+			}
+		}
 		versionCommand := exec.Command(path, "version", "--format", "{{.Server.Version}}")
 		output, err := versionCommand.Output()
 		if err != nil {
@@ -119,7 +127,7 @@ func containerRuntime() (string, string, error) {
 			return runtime, strings.TrimSpace(string(output)), nil
 		}
 	}
-	return "", "", fmt.Errorf("Docker or Podman daemon is unavailable")
+	return "", "", fmt.Errorf("Docker or Podman daemon running Linux containers is unavailable")
 }
 
 func atomicJSON(path string, value any, mode os.FileMode) error {

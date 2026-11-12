@@ -32,7 +32,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+# The worker image is Linux; a Docker engine in Windows-containers mode (as on
+# the hosted Windows runner) answers `info` but cannot run it.
+if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1 \
+  || [[ "$(docker info --format '{{.OSType}}' 2>/dev/null | tr -d '\r')" != linux ]]; then
   [[ "${TASKSPEC_REQUIRE_MESH_ISOLATION:-0}" != "1" ]] || { echo "MESH_ISOLATION=UNAVAILABLE reason=docker" >&2; exit 1; }
   echo "MESH_ISOLATION=UNAVAILABLE reason=docker"
   exit 0
