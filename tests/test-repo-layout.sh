@@ -10,6 +10,8 @@
 # the manifest below AND the layout table in AGENTS.md in the same change.
 # That friction is the point.
 set -euo pipefail
+# Some Git for Windows images ship sha256sum but not Perl's shasum.
+command -v shasum >/dev/null 2>&1 || shasum() { [[ "${1:-}" == -a ]] && shift 2; sha256sum "$@"; }
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"

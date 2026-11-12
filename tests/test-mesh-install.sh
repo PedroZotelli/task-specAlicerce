@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Some Git for Windows images ship sha256sum but not Perl's shasum.
+command -v shasum >/dev/null 2>&1 || shasum() { [[ "${1:-}" == -a ]] && shift 2; sha256sum "$@"; }
 
 # Windows: the TaskMesh daemon is a native process that Git Bash's kill cannot
 # signal, and a live daemon keeps its database open, so cleanup could not remove it.

@@ -33,6 +33,8 @@ The canonical version lives in `./VERSION` and is mirrored by
   the exact CLI (`-ef`, the same file) whatever path form `readlink` returns.
   `test-mesh-install.sh` now creates that link as a native symlink; Git Bash's
   plain `ln -s` makes a copy, which the installer rightly refused to clobber.
+- Four tests fall back to `sha256sum` when Perl's `shasum` is missing, as on
+  the hosted Windows runner's Git Bash (the installer already did).
 
 ## [3.10.0] — 2026-11-11
 
