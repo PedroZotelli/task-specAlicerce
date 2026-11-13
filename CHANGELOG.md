@@ -21,6 +21,10 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ### Fixed
 
+- The Claude Code plugin loads again. `.claude-plugin/plugin.json` listed the
+  skill as `./SKILL.md`; current Claude Code requires a directory containing
+  `SKILL.md` and reported "failed to load". It now lists `./`, and
+  `claude plugin validate` passes.
 - `install.sh --force` no longer leaves backups beside the replaced item. A
   `task-spec.backup.<time>` folder inside `.claude/skills/` (and the other
   harness skill folders) was discovered as a second, stale skill. Backups now go
