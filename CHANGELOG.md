@@ -13,10 +13,37 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- The repository is now `PedroZotelli/task-specAlicerce`, a standalone repository (no longer in the original's fork network). Links, install commands and manifests use the new name; GitHub redirects the old one.
+
+### Fixed
+
+- Holdout checks whose `argv` starts with `bash` now run under Git Bash on
+  Windows. The holdout runner started the program as given, and a bare `bash`
+  from native Windows Python resolves to the WSL launcher in System32.
+  `resolve_command` now maps a bare `bash`/`sh` to Git Bash, and the runner
+  uses it.
+- Two tests (`test-extractor-fuzz.sh`, `test-mesh-cockpit.sh`) start the
+  running bash by its path for the same reason, and stop a timed-out process
+  tree with `taskkill` where process groups do not exist.
+- On Windows with native symlinks, `install.sh` keeps an npm package link to
+  the exact CLI (`-ef`, the same file) whatever path form `readlink` returns.
+  `test-mesh-install.sh` now creates that link as a native symlink; Git Bash's
+  plain `ln -s` makes a copy, which the installer rightly refused to clobber.
+- Four tests fall back to `sha256sum` when Perl's `shasum` is missing, as on
+  the hosted Windows runner's Git Bash (the installer already did).
+- TaskMesh's autonomous sandbox only accepts a Docker engine running Linux
+  containers (`docker info` OSType `linux`). A Windows-containers engine, as on
+  the hosted Windows runner, answered `info` and then failed obscurely; it is
+  now reported as unavailable, and `test-mesh-isolation.sh` skips the same way.
+
 ## [3.10.0] — 2026-11-11
 
 First release of Pedro Zotelli's own line of this fork,
-https://github.com/PedroZotelli/task-specLuan. Authorship of the original work
+https://github.com/PedroZotelli/task-specAlicerce. Authorship of the original work
 stays with Luan Moreno Medeiros Maciel; see `NOTICE`. This release also carries
 the TaskMesh roster work listed under Added, which was unreleased upstream.
 

@@ -59,6 +59,9 @@ def resolve_command(argv: list[str]) -> list[str]:
     if sys.platform != "win32" or not argv:
         return argv
     program = argv[0]
+    if program in {"bash", "sh", "bash.exe", "sh.exe"}:
+        # A bare bash may resolve to the WSL launcher; always use Git Bash.
+        return [bash_executable(), *argv[1:]]
     found = program if os.path.isfile(program) else find_program(program)
     if found is None:
         return argv

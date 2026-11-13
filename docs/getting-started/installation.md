@@ -6,7 +6,7 @@ harness destinations. It never stores model/provider credentials.
 The repository and release remain private. Authenticate GitHub before cloning:
 
 ```bash
-git clone --depth 1 https://github.com/PedroZotelli/task-specLuan.git \
+git clone --depth 1 https://github.com/PedroZotelli/task-specAlicerce.git \
   "$HOME/.local/share/task-spec-src"
 
 # User-level skills for Codex/Kimi, Claude Code, Grok Build, and Cursor
@@ -31,7 +31,7 @@ the helper assets as well only when TaskMesh is wanted:
 gh auth status
 release_dir="$(mktemp -d)"
 gh release download v3.10.0 \
-  --repo PedroZotelli/task-specLuan \
+  --repo PedroZotelli/task-specAlicerce \
   --pattern 'task-spec-3.10.0.tar.gz*' \
   --pattern 'taskspec-meshd-*' \
   --dir "$release_dir"
@@ -87,7 +87,7 @@ credentials or modify shell startup files.
 For npm/GitHub:
 
 ```bash
-npm install -g git+https://github.com/PedroZotelli/task-specLuan.git#v3.10.0
+npm install -g git+https://github.com/PedroZotelli/task-specAlicerce.git#v3.10.0
 taskspec-install --global --with-mesh
 ```
 
@@ -97,6 +97,6 @@ the hosted release smoke and `make check`, respectively.
 For Claude marketplace:
 
 ```text
-/plugin marketplace add PedroZotelli/task-specLuan
+/plugin marketplace add PedroZotelli/task-specAlicerce
 /plugin install task-spec@taskspec
 ```

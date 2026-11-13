@@ -25,7 +25,7 @@ You do NOT need: Claude Code, Kimi, Codex, Tavily, Context7, or any external ser
 
 ```bash
 ENGINE=$(mktemp -d)/task-spec
-git clone --quiet https://github.com/PedroZotelli/task-specLuan.git "$ENGINE"
+git clone --quiet https://github.com/PedroZotelli/task-specAlicerce.git "$ENGINE"
 export PATH="$ENGINE/bin:$PATH"
 
 TMP=$(mktemp -d)

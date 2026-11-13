@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Some Git for Windows images ship sha256sum but not Perl's shasum.
+command -v shasum >/dev/null 2>&1 || shasum() { [[ "${1:-}" == -a ]] && shift 2; sha256sum "$@"; }
 
 # Windows: the TaskMesh daemon is a native process that Git Bash's kill cannot
 # signal, and a live daemon keeps its database open, so cleanup could not remove it.
@@ -97,13 +99,14 @@ after="$(git -C "$ROOT" status --porcelain)"
 
 # The npm package already owns BIN_DIR/taskspec. The harness installer keeps
 # that exact package link while adding skills, the pinned engine, and TaskMesh.
-ln -s "$ROOT/bin/taskspec" "$WORK/npm-bin/taskspec"
+# (Git Bash makes `ln -s` a silent copy unless MSYS asks for a native symlink.)
+MSYS=winsymlinks:nativestrict ln -s "$ROOT/bin/taskspec" "$WORK/npm-bin/taskspec"
 HOME="$WORK/npm-home" TASKSPEC_INSTALL_ROOT="$WORK/npm-install" TASKSPEC_MESH_ASSET_DIR="$WORK/assets" \
   bash "$ROOT/install.sh" --target "$WORK/npm-project" --bin-dir "$WORK/npm-bin" --with-mesh >"$WORK/npm.log"
 grep -q '^kept: package CLI ' "$WORK/npm.log"
 grep -q '^INSTALL=OK$' "$WORK/npm.log"
 [[ -L "$WORK/npm-bin/taskspec" ]]
-[[ "$(readlink "$WORK/npm-bin/taskspec")" == "$ROOT/bin/taskspec" ]]
+[[ "$WORK/npm-bin/taskspec" -ef "$ROOT/bin/taskspec" ]]
 [[ -x "$WORK/npm-bin/taskspec-meshd$EXE" ]]
 else
   set +e

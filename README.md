@@ -105,7 +105,7 @@ that uses Task-Spec. The skill drives `taskspec`. It does not replace the gates.
 Claude marketplace (plugin, not a second contract):
 
 ```text
-/plugin marketplace add PedroZotelli/task-specLuan
+/plugin marketplace add PedroZotelli/task-specAlicerce
 /plugin install task-spec@taskspec
 ```
 
@@ -147,7 +147,7 @@ hand-edit accepted: true.
 
 ## Installation
 
-This fork is public: https://github.com/PedroZotelli/task-specLuan. Cloning needs no credentials. On Windows, run the
+This fork is public: https://github.com/PedroZotelli/task-specAlicerce. Cloning needs no credentials. On Windows, run the
 commands in Git Bash.
 
 Pick one door. All of them install the same engine and the same skill.
@@ -162,7 +162,7 @@ Pick one door. All of them install the same engine and the same skill.
 ### 1. Source checkout
 
 ```bash
-git clone --depth 1 https://github.com/PedroZotelli/task-specLuan.git \
+git clone --depth 1 https://github.com/PedroZotelli/task-specAlicerce.git \
   "$HOME/.local/share/task-spec-src"
 
 bash "$HOME/.local/share/task-spec-src/install.sh" --global --copy
@@ -198,7 +198,7 @@ skill copy, and the CLI launcher all agree.
 gh auth status
 release_dir="$(mktemp -d)"
 gh release download v3.10.0 \
-  --repo PedroZotelli/task-specLuan \
+  --repo PedroZotelli/task-specAlicerce \
   --pattern 'task-spec-3.10.0.tar.gz*' \
   --pattern 'taskspec-meshd-*' \
   --dir "$release_dir"
@@ -210,7 +210,7 @@ bash "$release_dir/task-spec-3.10.0/install.sh" --global --copy --with-mesh
 ### 3. Node package plus GitHub tag
 
 ```bash
-npm install -g git+https://github.com/PedroZotelli/task-specLuan.git#v3.10.0
+npm install -g git+https://github.com/PedroZotelli/task-specAlicerce.git#v3.10.0
 taskspec-install --global --with-mesh
 ```
 

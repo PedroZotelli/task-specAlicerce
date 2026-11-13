@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PINNED_VERSION="3.10.0"
-REPOSITORY="PedroZotelli/task-specLuan"
+REPOSITORY="PedroZotelli/task-specAlicerce"
 TARGET="$PWD"
 MODE="copy"
 BIN_DIR="${HOME}/.local/bin"
@@ -344,7 +344,8 @@ if [[ "$NO_BIN" != true ]]; then
     if grep -q "task-spec launcher v$PINNED_VERSION" "$launcher" 2>/dev/null && [[ "$FORCE" != true ]]; then
       echo "kept: CLI launcher $launcher"
     elif [[ -x "$launcher" && -x "$SOURCE_ROOT/bin/taskspec" ]] \
-      && [[ "$(resolve_existing_file "$launcher")" == "$(resolve_existing_file "$SOURCE_ROOT/bin/taskspec")" ]] \
+      && { [[ "$launcher" -ef "$SOURCE_ROOT/bin/taskspec" ]] \
+        || [[ "$(resolve_existing_file "$launcher")" == "$(resolve_existing_file "$SOURCE_ROOT/bin/taskspec")" ]]; } \
       && [[ "$("$launcher" version)" == "$PINNED_VERSION" ]] \
       && [[ "$FORCE" != true ]]; then
       # npm already placed the exact package CLI in BIN_DIR. Keep that link;
