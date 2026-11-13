@@ -21,6 +21,10 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ### Fixed
 
+- `install.sh --force` no longer leaves backups beside the replaced item. A
+  `task-spec.backup.<time>` folder inside `.claude/skills/` (and the other
+  harness skill folders) was discovered as a second, stale skill. Backups now go
+  to `<install root>/backups/<UTC timestamp>/`, named after the original path.
 - Holdout checks whose `argv` starts with `bash` now run under Git Bash on
   Windows. The holdout runner started the program as given, and a bare `bash`
   from native Windows Python resolves to the WSL launcher in System32.

@@ -108,7 +108,7 @@ else
 fi
 
 if TASKSPEC_INSTALL_ROOT="$UNMANAGED_ROOT" bash "$ROOT/install.sh" --target "$UNMANAGED_TARGET" --copy --bin-dir "$UNMANAGED_BIN" --force >"$WORK/forced.out" 2>&1 \
-  && find "$UNMANAGED_TARGET/.agents/skills" -maxdepth 1 -name 'task-spec.backup.*' -type d | grep -q . \
+  && find "$UNMANAGED_ROOT/backups" -mindepth 2 -maxdepth 2 -name '*__.agents__skills__task-spec' -type d | grep -q .   && ! find "$UNMANAGED_TARGET/.agents/skills" -maxdepth 1 -name 'task-spec.backup.*' | grep -q . \
   && grep -q '^name: task-spec$' "$UNMANAGED_TARGET/.agents/skills/task-spec/SKILL.md"; then
   pass "forced replacement leaves a backup"
 else

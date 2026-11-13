@@ -126,7 +126,14 @@ backup_existing() {
       echo "install.sh: refusing to clobber existing $path (use --force)" >&2
       return 1
     fi
-    backup="${path}.backup.$(date -u +%Y%m%dT%H%M%SZ)"
+    # Backups live under the install root, never beside the original: a copy
+    # left in a skills directory is discovered as a second, stale skill.
+    local stamp name
+    stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    name="$(printf '%s' "$path" | sed -e 's#^/*##' -e 's#[/:\]#__#g')"
+    mkdir -p "$INSTALL_ROOT/backups/$stamp"
+    backup="$INSTALL_ROOT/backups/$stamp/$name"
+    [[ ! -e "$backup" && ! -L "$backup" ]] || backup="$backup.$$"
     mv "$path" "$backup"
     echo "backup: $backup"
   fi

@@ -68,7 +68,9 @@ bash install.sh --force
 ```
 
 Copy mode is pinned and non-clobbering. Symlink mode is only for a local
-checkout. `--force` backs up a managed destination before replacement. The
+checkout. `--force` backs up a managed destination before replacement, under
+`<install root>/backups/<UTC timestamp>/` (by default `~/.local/share/task-spec`),
+never beside the original, so no agent discovers an old skill copy. The
 installer prints `INSTALL=OK` only after engine, skill parity, and launcher
 version checks pass. The remote door downloads the release asset and published
 SHA-256, verifies the archive before extraction, reports PATH when needed, and
