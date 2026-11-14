@@ -501,8 +501,12 @@ make check
 ```
 
 Format changes are triple-locked: schema, conformance fixture, and changelog.
-Hosted CI runs `make check` on `ubuntu-latest` only; run the bash-3.2 floor
-locally. Do not rewrite frozen artifacts. Extracted from Converge at v3.3.0
+Hosted CI runs `make check` on `ubuntu-latest`, `macos-latest`, and
+`windows-latest`; run the bash-3.2 floor locally. `make check` needs PyYAML for
+the `python3` on `PATH` (CI installs it). A proof that cannot run on a host is
+printed as `NOT EXECUTED` and proves nothing: the Docker isolation proof runs
+only on the Ubuntu job, and the cross-engine proof needs Node 22.18 or newer.
+Do not rewrite frozen artifacts. Extracted from Converge at v3.3.0
 (`converge@f78f077`).
 
 ## Maintainers

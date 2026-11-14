@@ -15,11 +15,61 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ## [Unreleased]
 
+### Security
+
+- A holdout key now makes the seal mandatory. `taskspec holdout verify` and
+  `run` checked the seal only when the descriptor carried one, so an executor
+  able to edit the bundle and its descriptor could swap the hidden check for a
+  passing one, recompute the digest, drop the seal, and still get
+  `HOLDOUT=VERIFIED` and a passing receipt from a verifier holding the key. With
+  a key supplied (`TASKSPEC_HOLDOUT_KEY` or `--key-file`), an unsealed
+  descriptor is refused. Without a key, unsealed descriptors verify as before.
+- Hidden checks no longer receive `TASKSPEC_HOLDOUT_KEY`. They run code from
+  the workspace under evaluation, which could read the key from its environment
+  and seal a forged descriptor.
+- `taskspec holdout seal` without a key prints `HOLDOUT=UNSEALED`; it used to
+  print `HOLDOUT=SEALED` while writing `"seal": null`.
+- `tests/test-holdout-seal.sh` reproduces the downgrade and the key leak; it
+  fails on the previous code.
+
 ### Changed
 
 - The repository is now `PedroZotelli/task-specAlicerce`, a standalone repository (no longer in the original's fork network). Links, install commands and manifests use the new name; GitHub redirects the old one.
+- The `release-install-smoke` workflow is switched off until the owner's
+  release-provenance key exists. Its provenance job needs the secret
+  `TASKSPEC_RELEASE_PROVENANCE_KEY_PEM`, which this repository does not have,
+  and verifies against the original author's public key; publishing a release
+  would have uploaded the archives and then failed, leaving a release without
+  provenance. Nothing was removed: the jobs run again once the repository
+  variable `TASKSPEC_RELEASE_PROVENANCE_READY` is `true` (see the header of the
+  workflow file).
+- `tests/test-portability-e2e.sh` reports a proof that did not run as
+  `NOT EXECUTED`, counts it in the summary, and raises a warning in hosted CI.
+  A skipped proof used to look like part of a green run.
 
 ### Fixed
+
+- Hosted Windows CI no longer fails at random after a TaskMesh test has passed.
+  The tests stopped the daemon and deleted its directory at once; a daemon that
+  was still exiting kept its database open, `rm -rf` failed with "Device or
+  resource busy" inside the `EXIT` trap, and `set -e` turned that into a failed
+  run (seen on `main` at `14cff1c`). The seven tests that start a daemon now
+  wait for the process and retry the removal (`tests/mesh-test-lib.sh`);
+  `tests/test-mesh-cleanup.sh` reproduces the held file.
+- The cross-engine proof (Python and TypeScript consumers agree) runs on
+  Windows. `npm --prefix DIR install` started from a directory without a
+  `package.json` reads the current directory instead of `DIR` there and exits
+  127, so the step was skipped on every Windows run while the suite stayed
+  green. The dependencies are now installed from inside the directory. On a
+  Node older than 22.18, which cannot load `.ts` in an ES-module package, the
+  proof is reported as `NOT EXECUTED` with that reason.
+- On Windows, TaskMesh never hands an adapter script to the WSL launcher. A
+  script with a bash shebang was started with whichever `bash` came first on
+  `PATH`, and a native shell's `PATH` reaches `System32\bash.exe` first.
+  `ResolveProgram` now uses a bash outside the launcher directories or the one
+  shipped with Git for Windows, found from `git`, and refuses clearly when
+  neither exists (the same rule as `src/lib/portable_exec.py`;
+  `mesh/internal/mesh/program_windows_test.go`).
 
 - The Claude Code plugin loads again. `.claude-plugin/plugin.json` listed the
   skill as `./SKILL.md`; current Claude Code requires a directory containing

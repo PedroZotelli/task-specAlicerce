@@ -22,9 +22,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 WORK="$(mktemp -d -t taskspec-mesh-install-XXXXXX)"
 DAEMON_PID=""
+# shellcheck source=tests/mesh-test-lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mesh-test-lib.sh"
 cleanup() {
   [[ -z "$DAEMON_PID" ]] || kill "$DAEMON_PID" >/dev/null 2>&1 || true
-  rm -rf "$WORK"
+  wait_for_exit "$DAEMON_PID"
+  remove_tree "$WORK"
 }
 trap cleanup EXIT
 

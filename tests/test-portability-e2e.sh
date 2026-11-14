@@ -26,8 +26,16 @@ fail() {
   echo "  ✗ $1" >&2
   FAIL=$((FAIL + 1))
 }
+# A proof that did not run is neither a pass nor a failure. It is counted and
+# shown as NOT EXECUTED, and hosted CI raises a warning, so a green run never
+# reads as if the skipped proof had passed.
+NOT_EXECUTED=0
 note() {
-  echo "  ⏭ $1"
+  echo "  ⏭ NOT EXECUTED — $1"
+  NOT_EXECUTED=$((NOT_EXECUTED + 1))
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "::warning title=Proof not executed (test-portability-e2e)::$1"
+  fi
 }
 
 # Run a command with a wall-clock budget without relying on timeout(1)
@@ -395,11 +403,11 @@ TS_DIR="$SKILL_DIR/docs/examples"
 TS_CONSUMER="$TS_DIR/consume-task-spec.ts"
 
 if ! command -v node >/dev/null 2>&1; then
-  note "cross-engine proof skipped: node not present (any-agent floor preserved)"
+  note "cross-engine proof: node not present (any-agent floor preserved)"
 elif [[ ! -f "$TS_CONSUMER" ]]; then
-  note "cross-engine proof skipped: TS consumer not found at docs/examples/"
+  note "cross-engine proof: TS consumer not found at docs/examples/"
 elif [[ -z "$PY_JSON" ]]; then
-  note "cross-engine proof skipped: python consumer produced no JSON to compare against"
+  note "cross-engine proof: python consumer produced no JSON to compare against"
 else
   pass "node present ($(node --version 2>/dev/null)) — attempting cross-engine proof"
 
@@ -407,21 +415,25 @@ else
   if [[ ! -d "$TS_DIR/node_modules/ts-node" || ! -d "$TS_DIR/node_modules/yaml" || ! -d "$TS_DIR/node_modules/ajv" ]]; then
     if command -v npm >/dev/null 2>&1; then
       echo "  installing TS consumer deps (npm install, 120s budget)…"
+      # Install from inside the directory. On Windows, `npm --prefix DIR install`
+      # run from a directory without a package.json reads the current directory
+      # instead of DIR and exits 127, which silently skipped this proof there.
+      install_ts_deps() { ( cd "$TS_DIR" && npm install --no-audit --no-fund --silent ); }
       set +e
-      run_with_timeout 120 npm --prefix "$TS_DIR" install --no-audit --no-fund --silent >/dev/null 2>&1
+      run_with_timeout 120 install_ts_deps >/dev/null 2>&1
       npm_rc=$?
       set -e
       if [[ "$npm_rc" -ne 0 ]]; then
         TS_DEPS_OK=false
         if [[ "$npm_rc" -eq 124 ]]; then
-          note "cross-engine proof skipped: npm install exceeded 120s budget (no hang)"
+          note "cross-engine proof: npm install exceeded 120s budget (no hang)"
         else
-          note "cross-engine proof skipped: npm install failed (rc=$npm_rc)"
+          note "cross-engine proof: npm install failed (rc=$npm_rc)"
         fi
       fi
     else
       TS_DEPS_OK=false
-      note "cross-engine proof skipped: npm not available to install TS deps"
+      note "cross-engine proof: npm not available to install TS deps"
     fi
   fi
 
@@ -459,10 +471,18 @@ else
         echo "      ts:     $TS_LB" >&2
       fi
     elif [[ "$ts_rc" -eq 124 ]]; then
-      note "cross-engine proof skipped: TS consumer exceeded 90s budget (no hang)"
+      note "cross-engine proof: TS consumer exceeded 90s budget (no hang)"
     else
-      fail "typescript consumer failed on golden fixture (rc=$ts_rc) — .ts may have rotted"
-      run_ts_consumer 2>&1 | head -10
+      ts_error="$(run_ts_consumer 2>&1 | head -10 || true)"
+      if grep -q 'ERR_UNKNOWN_FILE_EXTENSION' <<<"$ts_error"; then
+        # The runtime, not the consumer: this Node cannot load a .ts file in an
+        # ES-module package (ts-node 10 relies on Node's built-in TypeScript
+        # support, default from Node 22.18).
+        note "cross-engine proof: Node $(node --version 2>/dev/null) cannot load .ts in an ES-module package (needs Node 22.18 or newer)"
+      else
+        fail "typescript consumer failed on golden fixture (rc=$ts_rc) — .ts may have rotted"
+        printf '%s\n' "$ts_error"
+      fi
     fi
   fi
 fi
@@ -470,6 +490,9 @@ fi
 echo ""
 echo "========================================"
 printf "Results: %d passed, %d failed\n" "$PASS" "$FAIL"
+if [[ "$NOT_EXECUTED" -gt 0 ]]; then
+  printf "Not executed: %d (see the NOT EXECUTED lines above; they prove nothing)\n" "$NOT_EXECUTED"
+fi
 echo "========================================"
 
 if [[ $FAIL -gt 0 ]]; then
