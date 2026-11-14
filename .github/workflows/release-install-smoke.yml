@@ -1,5 +1,16 @@
 # Real distribution-door proof. This runs only for a published release or an
 # explicitly selected tag, so it never turns an unpublished ref into evidence.
+#
+# SWITCHED OFF in this line until the owner's release-provenance key exists.
+# The provenance job signs with the secret TASKSPEC_RELEASE_PROVENANCE_KEY_PEM,
+# which this repository does not have, and verifies against
+# release/trust/release-provenance.ed25519.pub.pem, which is still the original
+# author's public key. Without the switch, publishing a release would upload the
+# archives and then fail the provenance job, leaving a release with no provenance.
+# Every job depends on release-assets, so its condition skips the whole workflow.
+# To switch it on (owner only): create the key pair, commit the new public key,
+# add the secret, then set the repository variable
+# TASKSPEC_RELEASE_PROVENANCE_READY to "true".
 name: release-install-smoke
 
 on:
@@ -17,6 +28,7 @@ permissions:
 jobs:
   release-assets:
     name: checksum-backed release archive
+    if: ${{ vars.TASKSPEC_RELEASE_PROVENANCE_READY == 'true' }}
     runs-on: ubuntu-latest
     env:
       RELEASE_REF: ${{ github.event.release.tag_name || inputs.release_ref }}

@@ -25,10 +25,14 @@ EXPIRED_REPO="$TMP/expired"
 HELPER="$TMP/taskspec-meshd$(go env GOEXE)"  # .exe on Windows
 GATEWAY_PID=""
 DAEMON_PIDS=""
+# shellcheck source=tests/mesh-test-lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mesh-test-lib.sh"
 cleanup() {
   if [[ -n "$GATEWAY_PID" ]]; then kill "$GATEWAY_PID" >/dev/null 2>&1 || true; fi
   for pid in $DAEMON_PIDS; do kill "$pid" >/dev/null 2>&1 || true; done
-  rm -rf "$TMP"
+  # shellcheck disable=SC2086  # a space-separated list of process ids
+  wait_for_exit "$GATEWAY_PID" $DAEMON_PIDS
+  remove_tree "$TMP"
 }
 trap cleanup EXIT
 

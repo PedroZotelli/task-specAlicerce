@@ -58,7 +58,7 @@ if the machine contract and reference diverge.
 | `taskspec run` | runs declared eval commands in the task workspace | — |
 | `taskspec accept` | --stamp atomically writes AcceptanceRecord/v1 plus the complete acceptance envelope | `ACCEPTED=1`, `ACCEPTED=0`, `ACCEPTANCE_FAILURE=<code>` |
 | `taskspec author-doctor` | none | `AUTHOR_DOCTOR=READY`, `AUTHOR_DOCTOR=INVALID` |
-| `taskspec holdout` | seal/run may write descriptor or receipt; verify is read-only | `HOLDOUT=SEALED`, `HOLDOUT=VERIFIED`, `HOLDOUT=INVALID` |
+| `taskspec holdout` | seal/run may write descriptor or receipt; verify is read-only | `HOLDOUT=SEALED`, `HOLDOUT=UNSEALED`, `HOLDOUT=VERIFIED`, `HOLDOUT=INVALID` |
 | `taskspec receipt` | creator/sign commands write explicit receipt paths; validate is read-only | `RECEIPT=WRITTEN`, `RECEIPT=SIGNED`, `RECEIPT=INVALID` |
 | `taskspec eval-audit` | uses temporary git worktrees; optional report path | `EVAL_AUDIT=INVALID` |
 | `taskspec identity` | init/sign/revoke write explicit files; verify is read-only | `IDENTITY=READY`, `IDENTITY=SIGNED`, `IDENTITY=VERIFIED`, `IDENTITY=REVOKED` |

@@ -22,9 +22,12 @@ TMP="$(mktemp -d -t taskspec-mesh-leases-XXXXXX)"
 REPO="$TMP/repository"
 HELPER="$TMP/taskspec-meshd$(go env GOEXE)"  # .exe on Windows
 DAEMON_PID=""
+# shellcheck source=tests/mesh-test-lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mesh-test-lib.sh"
 cleanup() {
   if [[ -n "$DAEMON_PID" ]]; then kill "$DAEMON_PID" >/dev/null 2>&1 || true; fi
-  rm -rf "$TMP"
+  wait_for_exit "$DAEMON_PID"
+  remove_tree "$TMP"
 }
 trap cleanup EXIT
 

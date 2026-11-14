@@ -133,7 +133,22 @@ def verify_descriptor(
                 expected_mac = hmac.new(key, _canonical(payload), hashlib.sha256).hexdigest()
                 if parts[1] != expected_key_id or not hmac.compare_digest(parts[2], expected_mac):
                     errors.append("descriptor HMAC does not verify")
+    elif key:
+        # A key makes the seal mandatory. Otherwise removing the seal (and
+        # recomputing the digest of a swapped bundle) would pass verification.
+        errors.append("descriptor is not sealed but a holdout key was supplied; seal it with this key")
     return errors
+
+
+def _check_environment() -> dict[str, str]:
+    """Environment for a hidden check: the caller's, without the holdout key.
+
+    Checks execute code from the workspace under evaluation; a key visible there
+    could be used to seal a forged descriptor.
+    """
+    environment = {name: value for name, value in os.environ.items() if name != "TASKSPEC_HOLDOUT_KEY"}
+    environment["TASKSPEC_HOLDOUT"] = "1"
+    return environment
 
 
 def run_bundle(bundle: dict[str, Any], workspace: pathlib.Path) -> tuple[bool, list[dict[str, Any]]]:
@@ -148,7 +163,7 @@ def run_bundle(bundle: dict[str, Any], workspace: pathlib.Path) -> tuple[bool, l
                 capture_output=True,
                 timeout=check.get("timeout_sec", 300),
                 check=False,
-                env={**os.environ, "TASKSPEC_HOLDOUT": "1"},
+                env=_check_environment(),
             )
             exit_code = completed.returncode
             stdout = completed.stdout
@@ -214,7 +229,9 @@ def main() -> int:
         if args.command == "seal":
             descriptor = make_descriptor(bundle_path, bundle, key, args.expires_at, args.rotation_id)
             _write_json(pathlib.Path(args.out), descriptor)
-            print(f"HOLDOUT=SEALED digest={descriptor['bundle_digest']} checks={descriptor['check_count']}")
+            # Without a key there is a digest but no seal: say so, never SEALED.
+            state = "SEALED" if descriptor["seal"] else "UNSEALED"
+            print(f"HOLDOUT={state} digest={descriptor['bundle_digest']} checks={descriptor['check_count']}")
             return 0
         descriptor = _read_json(pathlib.Path(args.descriptor))
         errors = verify_descriptor(descriptor, bundle_path, bundle, key)

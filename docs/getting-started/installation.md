@@ -48,6 +48,11 @@ statement. Its public verification key is retained at
 `release/trust/release-provenance.ed25519.pub.pem`; the private key exists only
 in the trusted GitHub Actions secret store.
 
+In this line (`PedroZotelli/task-specAlicerce`) no release has been published
+yet, and that workflow (`release-install-smoke`) is switched off until the
+owner's provenance key exists: the retained public key is still the original
+author's. Install from a clone, as shown at the top of this page.
+
 | Harness | User-level skill | Repository-local skill |
 |---|---|---|
 | Codex and Kimi | `~/.agents/skills/task-spec/SKILL.md` | `.agents/skills/task-spec/SKILL.md` |

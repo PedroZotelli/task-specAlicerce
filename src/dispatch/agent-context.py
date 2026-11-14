@@ -24,7 +24,7 @@ commands = {
     "run": {"mutation": "runs declared eval commands in the task workspace", "tokens": []},
     "accept": {"mutation": "--stamp atomically writes AcceptanceRecord/v1 plus the complete acceptance envelope", "tokens": ["ACCEPTED=1", "ACCEPTED=0", "ACCEPTANCE_FAILURE=<code>"]},
     "author-doctor": {"mutation": "none", "tokens": ["AUTHOR_DOCTOR=READY", "AUTHOR_DOCTOR=INVALID"]},
-    "holdout": {"mutation": "seal/run may write descriptor or receipt; verify is read-only", "tokens": ["HOLDOUT=SEALED", "HOLDOUT=VERIFIED", "HOLDOUT=INVALID"]},
+    "holdout": {"mutation": "seal/run may write descriptor or receipt; verify is read-only", "tokens": ["HOLDOUT=SEALED", "HOLDOUT=UNSEALED", "HOLDOUT=VERIFIED", "HOLDOUT=INVALID"]},
     "receipt": {"mutation": "creator/sign commands write explicit receipt paths; validate is read-only", "tokens": ["RECEIPT=WRITTEN", "RECEIPT=SIGNED", "RECEIPT=INVALID"]},
     "eval-audit": {"mutation": "uses temporary git worktrees; optional report path", "tokens": ["EVAL_AUDIT=INVALID"]},
     "identity": {"mutation": "init/sign/revoke write explicit files; verify is read-only", "tokens": ["IDENTITY=READY", "IDENTITY=SIGNED", "IDENTITY=VERIFIED", "IDENTITY=REVOKED"]},
