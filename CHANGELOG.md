@@ -15,8 +15,30 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ## [Unreleased]
 
+## [3.10.1] — 2026-11-14
+
+A patch release so that installed copies pick the fixes up: Claude Code updates
+a plugin only when its version number changes, and the fixes below had been
+merged while the version stayed at 3.10.0. Release evidence for this version is
+in `release/3.10.1/`: local Windows suites observed, every hosted gate, signed
+provenance, and publication recorded as `not_run`.
+
 ### Security
 
+- Acceptance refuses a required holdout whose policy pins neither
+  `descriptor_digest` nor `authorization_ref`. The PRE-gate already refused such
+  a policy; acceptance used to accept any passing receipt for it when called
+  without the PRE-gate (`src/evidence/post_policy.py`).
+  `tests/test-holdout-acceptance.sh` covers it and fails on the previous code.
+- **Known limit, documented and not changed here.** A v2 holdout receipt is
+  tied to the task's descriptor only when the policy pins `descriptor_digest`.
+  With `authorization_ref` alone (the bundle digest, as the engine's own
+  evidence walkthrough uses), acceptance cannot tell which bundle produced a v2
+  receipt, because `EvaluationReceipt/v2` carries no bundle reference. Closing
+  it needs a receipt-format change (schema, conformance fixture, changelog), so
+  it is left for a minor release; until then, pin `descriptor_digest`
+  (`docs/concepts/evaluation-policy.md`). The test prints this case as
+  `KNOWN GAP` instead of passing silently.
 - A holdout key now makes the seal mandatory. `taskspec holdout verify` and
   `run` checked the seal only when the descriptor carried one, so an executor
   able to edit the bundle and its descriptor could swap the hidden check for a
@@ -34,6 +56,11 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ### Changed
 
+- Security reports about this repository go to this repository, not to the
+  original author: `README.md` and `SECURITY.md` pointed at the original
+  author's e-mail address, and `SECURITY.md` still named the `3.9.x` engine.
+- `release/README.md` described 3.9.0 as the current engine; it now lists
+  `3.10.0/` and `3.10.1/` and what each one does not claim.
 - The repository is now `PedroZotelli/task-specAlicerce`, a standalone repository (no longer in the original's fork network). Links, install commands and manifests use the new name; GitHub redirects the old one.
 - The `release-install-smoke` workflow is switched off until the owner's
   release-provenance key exists. Its provenance job needs the secret

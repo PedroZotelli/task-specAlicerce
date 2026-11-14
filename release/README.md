@@ -1,6 +1,6 @@
 # release/ — shipped inputs and frozen evidence
 
-Current engine: **3.9.0** (`../VERSION`). This directory name is load-bearing.
+Current engine: **3.10.1** (`../VERSION`). This directory name is load-bearing.
 `../install.sh` and the npm `files` allowlist ship `release/mesh`. CI reads
 `release/trust`. Frozen `release/<version>/` paths are digest-pinned. Do not
 rename this directory or rewrite a shipped version tree to match a later
@@ -12,8 +12,9 @@ There are two proof corridors. They are not the same thing:
 |---|---|---|
 | Quality score (97/100) | Did the 3.8.1 trust chain ship with digest-backed proof? | `evidence.json`, `quality-rubric.json`, `3.8.1/` |
 | TaskMesh 3.9.0 | Did the optional control plane install, isolate, and recover? | `3.9.0/`, `mesh/` |
+| Candidate evidence, 3.10.x | Which TaskMesh suites passed on the host that built the candidate, and which gates did not run? | `3.10.0/`, `3.10.1/` |
 
-3.9.0 **reuses** the 3.8.1 scorecard as its quality baseline. It does not
+3.9.0 and the 3.10.x line **reuse** the 3.8.1 scorecard as their quality baseline. They do not
 replace it. Recalculate with `make release-audit`. Check without mutating
 with `python3 src/evidence/release_audit.py check`.
 
@@ -25,7 +26,7 @@ Pick a side before adding a file:
 |---|---|---|
 | Shipped runtime input | `mesh/`, `docker/`, `trust/` | Yes, with installer/CI review |
 | Current audit input | `evidence.json`, `quality-rubric.json` | Yes, with the release-audit tests |
-| Frozen per-version evidence | `3.7/`, `3.8.1/`, `3.9.0/`, … | **No.** |
+| Frozen per-version evidence | `3.7/`, `3.8.1/`, `3.9.0/`, `3.10.0/`, `3.10.1/`, … | **No.** |
 
 New files must declare which row they belong to. Do not introduce a second
 top-level directory for either side.
@@ -37,7 +38,7 @@ top-level directory for either side.
 | Path | What it is | Used by |
 |---|---|---|
 | [`mesh/Dockerfile`](mesh/Dockerfile) | Non-root TaskMesh worker image (OMP 17.3.3, pinned base digest) | `install.sh --with-mesh` |
-| [`mesh/image.lock`](mesh/image.lock) | `TaskMeshWorkerImageLock/v1` for engine **3.9.0** | mesh install / isolation tests |
+| [`mesh/image.lock`](mesh/image.lock) | `TaskMeshWorkerImageLock/v1`, last changed for engine **3.9.0** (its `release` field still says so; the image is unchanged since) | mesh install / isolation tests |
 | [`mesh/worker-entrypoint.sh`](mesh/worker-entrypoint.sh) | Worker entrypoint copied into that image | `mesh/Dockerfile` |
 | [`docker/Dockerfile`](docker/Dockerfile) | Attestation runner image (read-only engine copy) | sandbox attestation |
 | [`docker/run-attestation.sh`](docker/run-attestation.sh) | Host-side attestation driver | `make release-audit` sandbox token |
@@ -99,14 +100,34 @@ TaskMesh + private-release corridor. It does **not** contain a new scorecard.
 | `install-matrix.json` | Checksum-backed / private install matrix |
 | `private-release-evidence.json` | DSSE provenance observation |
 
+#### `3.10.0/` and `3.10.1/`
+
+Candidate evidence of this repository's own line, written by
+`../tools/build-mesh-candidate-evidence.py` on the host that built the
+candidate. A suite counts as `pass` only when it exited 0 and printed its
+`READY` token there; a suite that could not run its proof on that host is left
+out of the suites and named under `limitations`. Neither directory holds a
+scorecard, a release report, hosted CI evidence, or provenance.
+
+| Path | Holds |
+|---|---|
+| `mesh-conformance.json` | The TaskMesh suites observed on one host (Windows, no Docker server), and the invariants they prove |
+| `reviewer-report.json` | Automated documentation and boundary checks; the product review is the owner's at release |
+| `mesh-release-evidence.json` | Roll-up. `release_status` is `candidate`; hosted Ubuntu and macOS, live isolation, remote install, provenance, and publication are `not_run` |
+
+3.10.1 is a patch over 3.10.0 (holdout acceptance and seal, Windows fixes). No
+`v3.10.1` tag, release archive, or signed provenance existed when its evidence
+was written.
+
 ## How to read a claim
 
-1. Engine version → `../VERSION` (3.9.0).
+1. Engine version → `../VERSION` (3.10.1).
 2. Quality score → `evidence.json` + `3.8.1/scorecard.json` (97, 3.8.1 corridor).
-3. TaskMesh readiness → `3.9.0/mesh-release-evidence.json`.
+3. TaskMesh readiness → `3.9.0/mesh-release-evidence.json` for the last published corridor;
+   `3.10.1/mesh-release-evidence.json` for what the current candidate observed and did not run.
 4. Protocol pins → `3.8.1/protocol-conformance.json` + `../interop/UPSTREAM.lock`.
 
-Unavailable or disabled evidence is never a pass. The 3.7 matrix template and
+Unavailable or disabled evidence is never a pass, and `not_run` is not a pass. The 3.7 matrix template and
 the 3.8.1/3.9.0 “does not claim production reliability” limitations are
 intentional.
 

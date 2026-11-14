@@ -27,6 +27,7 @@ read or write a real `tasks/` backlog.
 | `test-v36-experience.sh` | Installer modes, harness parity, clean-room acceptance, research contracts, and local npm package |
 | `test-v37-evidence-integrity.sh` | v4 policies, holdouts, receipts, identity, engine isolation, and A2A/MCP bridges |
 | `test-holdout-seal.sh` | A holdout key makes the seal mandatory (removing the seal of a swapped bundle is refused), hidden checks never see the key, and an unsealed descriptor is reported `UNSEALED` |
+| `test-holdout-acceptance.sh` | Acceptance and the holdout pin: a receipt for another descriptor (or naming none) is refused when the policy pins `descriptor_digest`, the matching receipt is accepted, and a policy that pins nothing is refused. Prints `KNOWN GAP` for the open case (a policy with `authorization_ref` alone does not tie a v2 receipt to a bundle) |
 | `test-mesh-cleanup.sh` | The shared TaskMesh test cleanup (`mesh-test-lib.sh`, sourced by the tests that start a daemon) waits for a process and retries the removal while it still holds a file |
 | `test-v38-hardening.sh` | HMAC v3 downgrade resistance, attempt-bound receipts, Git/path attacks, closure drift, AcceptanceRecord atomicity, and recovery |
 | `test-backlog-analysis.sh` | Recursive graph resolution, dependency frontier, cycles, composition, supersession, conflicts, and exact closure |
