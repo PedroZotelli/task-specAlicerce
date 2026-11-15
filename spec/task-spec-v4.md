@@ -38,8 +38,13 @@ evidence_refs:
     role: context  # context | constraint | risk
 ```
 
-At least one evaluation class must be required. Portable acceptance also
-requires an environment contract. Unresolved Open Questions require
+At least one evaluation class must be required. A required holdout pins
+`descriptor_digest`, `authorization_ref`, or both; acceptance refuses a policy
+that pins neither. When `descriptor_digest` is pinned, a receipt that names any
+other descriptor (or none) is refused. `authorization_ref` is compared with
+legacy v1 receipts only: `EvaluationReceipt/v2` carries no bundle reference, so
+a policy with `authorization_ref` alone does not tie a v2 receipt to a bundle.
+Portable acceptance also requires an environment contract. Unresolved Open Questions require
 `status: blocked`; an executor may not silently decide them.
 
 Authoring evidence is optional and sealed. Its digest must match

@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Report vulnerabilities against the current `3.9.x` engine. Older tags are
+Report vulnerabilities against the current `3.10.x` engine. Older tags are
 frozen evidence, not a maintained security branch.
 
 ## How to report
@@ -11,8 +11,11 @@ Use GitHub private vulnerability reporting on this repository. Do not file a
 public issue or pull request that includes exploit details, key material, or
 a working attack.
 
-If private reporting is unavailable, email the maintainer listed in
-[package.json](package.json) and [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json).
+If private reporting is unavailable, open an issue that asks only for a
+security contact, with no detail of the problem, and wait for the maintainer of
+this repository (`PedroZotelli/task-specAlicerce`) to open a private channel.
+The `author` named in [package.json](package.json) is the original author of
+Task-Spec and does not maintain this repository; do not send reports there.
 
 ## What is in scope
 

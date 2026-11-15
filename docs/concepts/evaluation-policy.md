@@ -29,6 +29,21 @@ flowchart LR
   A -->|missing, failed, mismatched| R[reject]
 ```
 
+Pin the holdout's descriptor. Seal the bundle first, then put the digest of
+the descriptor file in `evaluation_policy.holdout.descriptor_digest` before the
+task is authorized. Acceptance then refuses a holdout receipt for any other
+descriptor. A policy with `authorization_ref` alone is still accepted, but it
+does not tie a v2 receipt to a bundle: the receipt format has no bundle
+reference, so a passing receipt produced from a different bundle is not
+detected at acceptance. Seal the descriptor with a key the executor never sees
+(`TASKSPEC_HOLDOUT_KEY`); the runner then refuses an unsealed descriptor.
+
+In `local` scope a receipt is an unsigned statement, and anyone who holds the
+handoff can write one. The pin protects against the wrong bundle being run, not
+against a forged receipt. Forgery resistance comes from `portable` or
+`human-authorized` scope, where every receipt must carry the signature of an
+evaluator in the trust registry.
+
 Use `local` when evidence is meaningful only in the current checkout. Use
 `portable` when another environment must reproduce it; this requires an
 environment contract. Use `human-authorized` when human acceptance is the

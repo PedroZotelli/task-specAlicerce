@@ -174,6 +174,11 @@ def evaluate(
 
     holdout_policy = policy.get("holdout")
     if _required(holdout_policy):
+        # A required holdout that pins nothing would accept any passing
+        # receipt. The PRE-gate refuses such a policy; acceptance does not
+        # rely on the PRE-gate having run.
+        if not holdout_policy.get("descriptor_digest") and not holdout_policy.get("authorization_ref"):
+            errors.append("holdout policy pins neither descriptor_digest nor authorization_ref")
         receipt = evidence(holdout, "EvaluationReceipt/v2", "EvaluationReceipt/v1", holdout_policy, "holdout")
         if receipt:
             if receipt.get("check_type") != "holdout" or receipt.get("result") != "pass":
