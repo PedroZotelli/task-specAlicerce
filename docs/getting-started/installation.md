@@ -23,21 +23,21 @@ bash "$HOME/.local/share/task-spec-src/install.sh" \
   --target /path/to/repository --copy
 ```
 
-For a checksum-backed installation of a published `v3.10.1` release (this fork has
+For a checksum-backed installation of a published `v3.11.0` release (this fork has
 not published one yet), download
 the helper assets as well only when TaskMesh is wanted:
 
 ```bash
 gh auth status
 release_dir="$(mktemp -d)"
-gh release download v3.10.1 \
+gh release download v3.11.0 \
   --repo PedroZotelli/task-specAlicerce \
-  --pattern 'task-spec-3.10.1.tar.gz*' \
+  --pattern 'task-spec-3.11.0.tar.gz*' \
   --pattern 'taskspec-meshd-*' \
   --dir "$release_dir"
-(cd "$release_dir" && shasum -a 256 -c task-spec-3.10.1.tar.gz.sha256)
-tar -xzf "$release_dir/task-spec-3.10.1.tar.gz" -C "$release_dir"
-bash "$release_dir/task-spec-3.10.1/install.sh" --global --copy --with-mesh
+(cd "$release_dir" && shasum -a 256 -c task-spec-3.11.0.tar.gz.sha256)
+tar -xzf "$release_dir/task-spec-3.11.0.tar.gz" -C "$release_dir"
+bash "$release_dir/task-spec-3.11.0/install.sh" --global --copy --with-mesh
 ```
 
 Anonymous raw-file and release-asset URLs do not work while the repository is
@@ -94,7 +94,7 @@ credentials or modify shell startup files.
 For npm/GitHub:
 
 ```bash
-npm install -g git+https://github.com/PedroZotelli/task-specAlicerce.git#v3.10.1
+npm install -g git+https://github.com/PedroZotelli/task-specAlicerce.git#v3.11.0
 taskspec-install --global --with-mesh
 ```
 

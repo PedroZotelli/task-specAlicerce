@@ -10,7 +10,7 @@
 <p><strong>Agents can write code. TASK-SPEC makes them earn <code>done</code>.</strong></p>
 <p>One open contract for bounded scope, executable proof, sealed authority,<br/>portable handoff, and independent acceptance.</p>
 
-[![version](https://img.shields.io/badge/version-3.10.1-68c7ff)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-3.11.0-68c7ff)](CHANGELOG.md)
 [![format](https://img.shields.io/badge/format-v3%20stable%20%7C%20v4%20opt--in-ffb454)](spec/task-spec-v4.md)
 [![bash](https://img.shields.io/badge/bash-3.2%2B-4EAA25?logo=gnubash&logoColor=white)](#requirements)
 [![release gate](https://img.shields.io/badge/local%20gate-CHECK%3DREADY-3ddc97)](#trust-boundaries)
@@ -155,8 +155,8 @@ Pick one door. All of them install the same engine and the same skill.
 | Door | When | Command shape |
 |---|---|---|
 | Source checkout | You already cloned the repo | `bash install.sh --global --copy` |
-| Pinned release | You want the tagged `v3.10.1` archive | `gh release download` then that `install.sh` |
-| npm | You want the package launcher | `npm install -g …#v3.10.1` then `taskspec-install` |
+| Pinned release | You want the tagged `v3.11.0` archive | `gh release download` then that `install.sh` |
+| npm | You want the package launcher | `npm install -g …#v3.11.0` then `taskspec-install` |
 | Claude plugin | You only need the Claude skill entry | `/plugin install task-spec@taskspec` (still install the CLI) |
 
 ### 1. Source checkout
@@ -197,20 +197,20 @@ skill copy, and the CLI launcher all agree.
 ```bash
 gh auth status
 release_dir="$(mktemp -d)"
-gh release download v3.10.1 \
+gh release download v3.11.0 \
   --repo PedroZotelli/task-specAlicerce \
-  --pattern 'task-spec-3.10.1.tar.gz*' \
+  --pattern 'task-spec-3.11.0.tar.gz*' \
   --pattern 'taskspec-meshd-*' \
   --dir "$release_dir"
-(cd "$release_dir" && shasum -a 256 -c task-spec-3.10.1.tar.gz.sha256)
-tar -xzf "$release_dir/task-spec-3.10.1.tar.gz" -C "$release_dir"
-bash "$release_dir/task-spec-3.10.1/install.sh" --global --copy --with-mesh
+(cd "$release_dir" && shasum -a 256 -c task-spec-3.11.0.tar.gz.sha256)
+tar -xzf "$release_dir/task-spec-3.11.0.tar.gz" -C "$release_dir"
+bash "$release_dir/task-spec-3.11.0/install.sh" --global --copy --with-mesh
 ```
 
 ### 3. Node package plus GitHub tag
 
 ```bash
-npm install -g git+https://github.com/PedroZotelli/task-specAlicerce.git#v3.10.1
+npm install -g git+https://github.com/PedroZotelli/task-specAlicerce.git#v3.11.0
 taskspec-install --global --with-mesh
 ```
 

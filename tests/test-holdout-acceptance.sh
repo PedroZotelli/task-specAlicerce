@@ -6,10 +6,10 @@
 #   - a pinned descriptor_digest refuses a receipt for any other descriptor;
 #   - a policy that pins nothing is refused (it used to accept any passing
 #     receipt when acceptance ran without the PRE-gate);
-#   - KNOWN GAP, reported and not failed: with `authorization_ref` alone a v2
-#     receipt is not tied to a bundle, because EvaluationReceipt/v2 carries no
-#     bundle reference. An executor's own always-passing bundle, run against the
-#     real handoff, is accepted. Closing it needs a receipt-format change.
+#   - with `authorization_ref` alone, a v2 receipt must carry the digest of the
+#     bundle that produced it, and that digest must be the one the policy pins.
+#     Until 3.11.0 the receipt had no bundle reference: an executor's own
+#     always-passing bundle, run against the real handoff, was accepted.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,19 +19,10 @@ WORK="$(mktemp -d -t taskspec-holdout-accept-XXXXXX)"
 ART="$(mktemp -d -t taskspec-holdout-accept-artifacts-XXXXXX)"
 trap 'rm -rf "$WORK" "$ART"' EXIT
 FAILURES=0
-KNOWN_GAPS=0
 PINNED="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 fail() { echo "  FAIL: $*" >&2; FAILURES=$((FAILURES + 1)); }
 ok()   { echo "  ok   $*"; }
-gap()  {
-  KNOWN_GAPS=$((KNOWN_GAPS + 1))
-  echo "  KNOWN GAP — $*"
-  if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-    echo "::warning title=Known gap (test-holdout-acceptance)::$*"
-  fi
-}
-
 repo() {
   mkdir -p "$1/tasks"
   git -C "$1" init -q
@@ -166,25 +157,88 @@ for contract in EvaluationReceipt/v2 EvaluationReceipt/v1; do
   fi
 done
 
-# --- KNOWN GAP: authorization_ref alone does not tie a v2 receipt to a bundle -----
-ID="T-20260101-holdout-unpinned"
-R="$WORK/unpinned"; repo "$R"
-spec "$R" "$ID" "    authorization_ref: sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+# --- authorization_ref alone: the receipt must name the pinned bundle --------------
+ID="T-20260101-holdout-bundle"
+R="$WORK/bundle"; repo "$R"
+REAL="$ART/real"; mkdir -p "$REAL/ws"
+printf '{"contract":"HoldoutBundle/v1","task_id":"%s","checks":[{"id":"holdout_real","argv":["bash","-c","test -d ."],"verifies":["B-1"]}]}\n' "$ID" > "$REAL/bundle.json"
+BUNDLE_DIGEST="sha256:$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$REAL/bundle.json")"
+spec "$R" "$ID" "    authorization_ref: $BUNDLE_DIGEST\n"
 gate "$R" "$ID"
-H="$ART/unpinned-handoff.json"; handoff "$R" "$ID" 11111111-1111-4111-8111-111111111111 "$H"
-forge "$ID" "$H" "$ART/unpinned-receipt.json"
+H="$ART/bundle-handoff.json"; handoff "$R" "$ID" 11111111-1111-4111-8111-111111111111 "$H"
+
+forge "$ID" "$H" "$ART/bundle-forged.json"
 set +e
-accept "$R" "$ID" "$H" "$ART/unpinned-receipt.json" >/dev/null 2>&1; rc=$?
+out="$(accept "$R" "$ID" "$H" "$ART/bundle-forged.json" 2>&1)"; rc=$?
 set -e
-if [[ $rc -ne 0 ]]; then
-  ok "a receipt from another bundle is refused when the policy pins only authorization_ref"
+if [[ $rc -ne 0 && "$out" == *"RECEIPT_SUBJECT_MISMATCH"* ]]; then
+  ok "a receipt produced from another bundle is refused when the policy pins the bundle"
 else
-  gap "a policy with authorization_ref alone accepted a v2 receipt produced from a different bundle; pin descriptor_digest (docs/concepts/evaluation-policy.md)"
+  fail "a policy with authorization_ref alone accepted a v2 receipt produced from a different bundle (rc=$rc)"
 fi
 
-echo "  Known gaps: $KNOWN_GAPS (reported, not failed)"
+bash "$TS" receipt evaluation --handoff "$H" --check-type holdout --evaluator holdout-test \
+  --result pass --out "$ART/bundle-unnamed.json" >/dev/null
+set +e
+accept "$R" "$ID" "$H" "$ART/bundle-unnamed.json" >/dev/null 2>&1; rc=$?
+set -e
+if [[ $rc -ne 0 ]]; then
+  ok "a receipt that names no bundle is refused when the policy pins the bundle"
+else
+  fail "a v2 receipt without bundle_digest was accepted against authorization_ref"
+fi
+
+env -u TASKSPEC_HOLDOUT_KEY bash "$TS" holdout seal "$REAL/bundle.json" --out "$REAL/descriptor.json" >/dev/null
+env -u TASKSPEC_HOLDOUT_KEY bash "$TS" holdout run "$REAL/descriptor.json" "$REAL/bundle.json" \
+  --workspace "$REAL/ws" --handoff "$H" --receipt-out "$ART/bundle-real.json" >/dev/null
+if grep -q "\"bundle_digest\": \"$BUNDLE_DIGEST\"" "$ART/bundle-real.json" \
+  && bash "$TS" receipt validate "$ART/bundle-real.json" >/dev/null 2>&1; then
+  ok "the holdout runner writes the bundle digest into the v2 receipt, and it validates"
+else
+  fail "the runner's v2 receipt does not carry the digest of the bundle it ran"
+fi
+if accept "$R" "$ID" "$H" "$ART/bundle-real.json" 2>/dev/null | grep -q '^ACCEPTED=1$'; then
+  ok "the receipt of the pinned bundle is accepted"
+else
+  fail "the honest path broke: the runner's receipt for the pinned bundle was refused"
+fi
+
+# --- the receipt contract -----------------------------------------------------------
+if bash "$TS" receipt evaluation --handoff "$H" --check-type holdout --evaluator holdout-test \
+     --result pass --bundle-digest "$BUNDLE_DIGEST" --out "$ART/bundle-cli.json" >/dev/null 2>&1 \
+   && grep -q "\"bundle_digest\": \"$BUNDLE_DIGEST\"" "$ART/bundle-cli.json"; then
+  ok "receipt evaluation --bundle-digest records the bundle"
+else
+  fail "receipt evaluation has no --bundle-digest"
+fi
+python3 - "$ART/bundle-real.json" "$ART/bundle-bad.json" <<'PY'
+import json, sys
+receipt = json.load(open(sys.argv[1], encoding="utf-8"))
+receipt["bundle_digest"] = "not-a-digest"
+json.dump(receipt, open(sys.argv[2], "w", encoding="utf-8"))
+PY
+if bash "$TS" receipt validate "$ART/bundle-bad.json" >/dev/null 2>&1; then
+  fail "a malformed bundle_digest validated"
+else
+  ok "a malformed bundle_digest is rejected by receipt validate"
+fi
+if python3 - "$ROOT/spec/schemas/evaluation-receipt.schema.json" <<'PY'
+import json, sys
+schema = json.load(open(sys.argv[1], encoding="utf-8"))
+v1, v2 = schema["oneOf"]
+assert v2["properties"]["contract"]["const"] == "EvaluationReceipt/v2"
+assert v2["properties"]["bundle_digest"]["pattern"] == "^sha256:[0-9a-f]{64}$"
+assert "bundle_digest" not in v2["required"], "optional: deterministic receipts have no bundle"
+assert "bundle_digest" not in v1["properties"], "the legacy contract is frozen"
+PY
+then
+  ok "the EvaluationReceipt/v2 schema declares bundle_digest (optional, sha256)"
+else
+  fail "spec/schemas/evaluation-receipt.schema.json does not declare bundle_digest on v2"
+fi
+
 if [[ "$FAILURES" -ne 0 ]]; then
   echo "HOLDOUT_ACCEPTANCE=FAIL ($FAILURES)"
   exit 1
 fi
-echo "HOLDOUT_ACCEPTANCE=READY"
+echo "HOLDOUT_ACCEPTANCE=ENFORCED"

@@ -29,13 +29,19 @@ flowchart LR
   A -->|missing, failed, mismatched| R[reject]
 ```
 
-Pin the holdout's descriptor. Seal the bundle first, then put the digest of
-the descriptor file in `evaluation_policy.holdout.descriptor_digest` before the
-task is authorized. Acceptance then refuses a holdout receipt for any other
-descriptor. A policy with `authorization_ref` alone is still accepted, but it
-does not tie a v2 receipt to a bundle: the receipt format has no bundle
-reference, so a passing receipt produced from a different bundle is not
-detected at acceptance. Seal the descriptor with a key the executor never sees
+Pin the holdout before the task is authorized. There are two ways, and either
+ties the receipt to what the owner approved:
+
+- **The bundle:** put the digest of the bundle file in
+  `evaluation_policy.holdout.authorization_ref` (`sha256:<hex>`). The holdout
+  runner writes the digest of the bundle it ran into the receipt
+  (`bundle_digest`), and acceptance refuses a receipt that names another bundle
+  or none. The bundle digest is known as soon as the bundle is written.
+- **The descriptor:** seal the bundle first, then put the digest of the
+  descriptor file in `evaluation_policy.holdout.descriptor_digest`. Acceptance
+  refuses a receipt for any other descriptor.
+
+Seal the descriptor with a key the executor never sees
 (`TASKSPEC_HOLDOUT_KEY`); the runner then refuses an unsealed descriptor.
 
 In `local` scope a receipt is an unsigned statement, and anyone who holds the

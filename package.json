@@ -1,6 +1,6 @@
 {
   "name": "@pedrozotelli/task-spec",
-  "version": "3.10.1",
+  "version": "3.11.0",
   "description": "Canonical atomic-task contract with an optional portable multi-harness execution control plane",
   "license": "MIT",
   "author": {"name": "Luan Moreno", "email": "luan.moreno@owshq.com"},
