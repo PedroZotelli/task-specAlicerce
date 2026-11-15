@@ -2,7 +2,7 @@
 # Install a pinned Task-Spec engine, CLI launcher, and equivalent harness skills.
 set -euo pipefail
 
-PINNED_VERSION="3.10.1"
+PINNED_VERSION="3.11.0"
 REPOSITORY="PedroZotelli/task-specAlicerce"
 TARGET="$PWD"
 MODE="copy"

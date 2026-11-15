@@ -12,7 +12,7 @@ import (
 	"github.com/luanmorenomaciel/task-spec/mesh/internal/mesh"
 )
 
-var productVersion = "3.10.1"
+var productVersion = "3.11.0"
 
 func main() {
 	os.Exit(run(os.Args[1:]))

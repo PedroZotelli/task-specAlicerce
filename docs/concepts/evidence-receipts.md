@@ -21,7 +21,7 @@ sealed v4 policy may also set `max_age_sec`.
 
 | Receipt | Represents |
 |---|---|
-| `EvaluationReceipt/v2` | deterministic or private-holdout result |
+| `EvaluationReceipt/v2` | deterministic or private-holdout result; a holdout result names its bundle (`bundle_digest`) |
 | `GradedEvaluationReceipt/v2` | rubric digest, score, threshold, and result |
 | `HumanAcceptanceReceipt/v2` | accountable human decision |
 | `EnvironmentReceipt/v2` | an external enforcer's observation of a declared environment |

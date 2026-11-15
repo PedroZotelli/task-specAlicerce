@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import pathlib
+import re
 import sys
 from datetime import datetime, timezone
 from typing import Any
@@ -109,6 +110,11 @@ def validate(value: dict[str, Any]) -> list[str]:
             errors.append("EvaluationReceipt check_type must be deterministic or holdout")
         if value.get("result") not in {"pass", "fail", "error"}:
             errors.append("EvaluationReceipt result must be pass, fail, or error")
+        if "bundle_digest" in value:
+            if contract != "EvaluationReceipt/v2":
+                errors.append("bundle_digest belongs to EvaluationReceipt/v2 only")
+            elif not re.fullmatch(r"sha256:[0-9a-f]{64}", str(value["bundle_digest"])):
+                errors.append("EvaluationReceipt bundle_digest must be sha256:<64 hex>")
     elif contract in {"EnvironmentReceipt/v1", "EnvironmentReceipt/v2"} and value.get("enforced") is not True:
         errors.append("EnvironmentReceipt enforced must be true")
     elif contract in {"EngineRunReceipt/v1", "EngineRunReceipt/v2"}:
@@ -197,6 +203,7 @@ def main() -> int:
     evaluation.add_argument("--evaluator", required=True)
     evaluation.add_argument("--result", choices=["pass", "fail", "error"], required=True)
     evaluation.add_argument("--descriptor-digest")
+    evaluation.add_argument("--bundle-digest", help="sha256:<hex> of the holdout bundle that produced this result")
     evaluation.add_argument("--evidence", action="append", default=[])
     evaluation.add_argument("--out", required=True)
 
@@ -274,6 +281,9 @@ def main() -> int:
             subject, _ = receipt_subject(pathlib.Path(args.handoff))
             value = {"contract": "EvaluationReceipt/v2", "subject": subject, "observed_at": now(), "check_type": args.check_type, "evaluator": args.evaluator, "result": args.result, "evidence": args.evidence}
             if args.descriptor_digest: value["descriptor_digest"] = args.descriptor_digest
+            if args.bundle_digest: value["bundle_digest"] = args.bundle_digest
+            errors = validate(value)
+            if errors: raise ValueError("; ".join(errors))
         elif args.command == "graded":
             if args.legacy_v1:
                 value = {"contract": "GradedEvaluationReceipt/v1", "task_id": args.task_id, "authorization_ref": args.authorization_ref, "evaluator": args.evaluator, "rubric_digest": args.rubric_digest, "score": args.score, "threshold": args.threshold, "result": "pass" if args.score >= args.threshold else "fail", "evaluated_at": now()}

@@ -15,6 +15,48 @@ The canonical version lives in `./VERSION` and is mirrored by
 
 ## [Unreleased]
 
+## [3.11.0] — 2026-11-15
+
+A minor release: the evaluation receipt gains a field, and acceptance uses it.
+It closes the limit that 3.10.1 documented and left open. Release evidence for
+this version is in `release/3.11.0/`, with every gate that did not run recorded
+as `not_run`.
+
+### Security
+
+- **A holdout receipt is tied to the bundle that produced it.** With
+  `authorization_ref` alone in the policy (the bundle digest, as the engine's
+  own evidence walkthrough uses), acceptance could not tell which bundle had
+  produced an `EvaluationReceipt/v2`: an executor could write a bundle whose
+  only check always passes, describe it without a key, run it against the real
+  handoff, and have the task accepted. The receipt now names its bundle, and
+  acceptance refuses a v2 receipt whose `bundle_digest` is missing or differs
+  from the pinned `authorization_ref`. `tests/test-holdout-acceptance.sh`
+  reproduces the forged receipt; it fails on the previous code (6 checks).
+
+### Added
+
+- `EvaluationReceipt/v2` has an optional `bundle_digest` (`sha256:<64 hex>`):
+  the digest of the holdout bundle that ran. `taskspec holdout run` writes it,
+  `taskspec receipt evaluation` takes `--bundle-digest`, and
+  `taskspec receipt validate` rejects a malformed value. The field is covered
+  by the evaluator signature, like the rest of the receipt.
+  `spec/schemas/evaluation-receipt.schema.json` declares it; the legacy v1
+  contract is unchanged.
+
+### Changed
+
+- **Acceptance of a required holdout, when the policy has `authorization_ref`
+  and no `descriptor_digest`:** a v2 receipt must carry a `bundle_digest` equal
+  to that `authorization_ref`. A v2 receipt written by 3.10.1 or earlier has no
+  `bundle_digest` and is refused; run the holdout again with this version. A
+  policy whose `authorization_ref` is not a bundle digest (for example a
+  descriptor seal) no longer accepts v2 receipts; pin `descriptor_digest`, or
+  the bundle digest, and re-authorize. Policies that pin `descriptor_digest`,
+  and legacy v1 receipts, behave as before.
+- When a policy pins both a descriptor and a `sha256:` `authorization_ref`, a
+  receipt that names a different bundle is refused.
+
 ## [3.10.1] — 2026-11-14
 
 A patch release so that installed copies pick the fixes up: Claude Code updates

@@ -186,9 +186,24 @@ def evaluate(
             expected_descriptor = holdout_policy.get("descriptor_digest")
             if expected_descriptor and receipt.get("descriptor_digest") != expected_descriptor:
                 errors.append("holdout receipt descriptor_digest does not match policy")
-            expected_legacy_auth = holdout_policy.get("authorization_ref")
-            if receipt.get("contract") == "EvaluationReceipt/v1" and expected_legacy_auth and receipt.get("authorization_ref") != expected_legacy_auth:
-                errors.append("holdout legacy receipt authorization_ref does not match policy")
+            expected_authorization = holdout_policy.get("authorization_ref")
+            if receipt.get("contract") == "EvaluationReceipt/v1":
+                if expected_authorization and receipt.get("authorization_ref") != expected_authorization:
+                    errors.append("holdout legacy receipt authorization_ref does not match policy")
+            elif expected_authorization:
+                # A v2 receipt names the bundle that produced it. With no pinned
+                # descriptor, that name is the only tie to the bundle the owner
+                # approved; with one, a receipt that names another bundle still
+                # contradicts a policy that pins a bundle digest.
+                named = receipt.get("bundle_digest")
+                if not expected_descriptor:
+                    if named != expected_authorization:
+                        errors.append(
+                            "holdout receipt bundle_digest does not match policy authorization_ref "
+                            "(the receipt must name the pinned bundle; pin descriptor_digest to bind a descriptor instead)"
+                        )
+                elif named and str(expected_authorization).startswith("sha256:") and named != expected_authorization:
+                    errors.append("holdout receipt bundle_digest does not match policy authorization_ref")
 
     graded_policy = policy.get("graded")
     if _required(graded_policy):

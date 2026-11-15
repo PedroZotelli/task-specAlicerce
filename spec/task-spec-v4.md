@@ -41,10 +41,12 @@ evidence_refs:
 At least one evaluation class must be required. A required holdout pins
 `descriptor_digest`, `authorization_ref`, or both; acceptance refuses a policy
 that pins neither. When `descriptor_digest` is pinned, a receipt that names any
-other descriptor (or none) is refused. `authorization_ref` is compared with
-legacy v1 receipts only: `EvaluationReceipt/v2` carries no bundle reference, so
-a policy with `authorization_ref` alone does not tie a v2 receipt to a bundle.
-Portable acceptance also requires an environment contract. Unresolved Open Questions require
+other descriptor (or none) is refused. `authorization_ref` pins the bundle: it
+holds the bundle digest (`sha256:<hex>`). A legacy v1 receipt must repeat it in
+its own `authorization_ref`; an `EvaluationReceipt/v2` must carry it as
+`bundle_digest`, the digest of the bundle that ran (since 3.11.0). With
+`authorization_ref` alone, a v2 receipt without that field, or naming another
+bundle, is refused. Portable acceptance also requires an environment contract. Unresolved Open Questions require
 `status: blocked`; an executor may not silently decide them.
 
 Authoring evidence is optional and sealed. Its digest must match

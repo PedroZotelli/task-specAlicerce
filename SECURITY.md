@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Report vulnerabilities against the current `3.10.x` engine. Older tags are
+Report vulnerabilities against the current `3.11.x` engine. Older tags are
 frozen evidence, not a maintained security branch.
 
 ## How to report

@@ -266,7 +266,10 @@ def main() -> int:
             subject, _ = receipt_subject(pathlib.Path(args.handoff))
             if subject["task_id"] != bundle["task_id"]:
                 raise ValueError("holdout bundle task_id does not match handoff")
-            receipt.update({"subject": subject, "observed_at": observed})
+            # The digest of the bundle that actually ran (verify_descriptor has
+            # already matched it against the file). Acceptance compares it with the
+            # bundle the task's policy pins.
+            receipt.update({"subject": subject, "observed_at": observed, "bundle_digest": descriptor["bundle_digest"]})
         if args.receipt_out:
             _write_json(pathlib.Path(args.receipt_out), receipt)
         print(json.dumps(receipt, indent=2))
